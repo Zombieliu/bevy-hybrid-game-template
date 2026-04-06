@@ -100,3 +100,13 @@ jobs:
         run: pnpm build
       - name: Smoke test web shell
         run: SMOKE_WEB_SKIP_BUILD=1 pnpm smoke:web
+
+  headless-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: stable
+      - name: Check headless backend scaffold
+        run: cargo check --manifest-path server/headless_runtime/Cargo.toml

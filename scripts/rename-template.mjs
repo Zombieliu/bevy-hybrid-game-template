@@ -19,12 +19,14 @@ const repoUrl = args["repo-url"] ?? `https://github.com/your-account/${repoSlug}
 const appName = pascalCase(displayName);
 const executableName = crateName;
 const wasmPackageName = `${crateName}_runtime`;
+const serverPackageName = `${crateName}_headless_backend`;
 const webPackageName = `${repoSlug}-web`;
 
 const replacements = [
   ["Bevy Hybrid Game Template", displayName],
   ["Bevy Hybrid Game", displayName],
   ["bevy_hybrid_game", executableName],
+  ["bevy_hybrid_game_headless_backend", serverPackageName],
   ["bevy-hybrid-game-template-web", webPackageName],
   ["bevy-hybrid-game-template", repoSlug],
   ["bevy_hybrid_game_runtime", wasmPackageName],
@@ -49,6 +51,8 @@ const files = [
   "mobile/src/lib.rs",
   "src/main.rs",
   "src/runtime_app.rs",
+  "server/headless_runtime/Cargo.toml",
+  "server/headless_runtime/README.md",
   "apps/web/package.json",
   "apps/web/app/layout.tsx",
   "apps/web/components/game-shell.tsx",

@@ -1,4 +1,5 @@
 target/
+server/headless_runtime/target/
 .idea/
 .DS_Store
 

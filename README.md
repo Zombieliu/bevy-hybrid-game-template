@@ -66,6 +66,7 @@ See the visual map in [`docs/capability-map.svg`](./docs/capability-map.svg).
 - `pnpm build` exports a static web artifact from `apps/web/out`
 - `pnpm smoke:web` boots the shell, launches the runtime, and validates scene/input flow
 - `pnpm rename:template -- ...` rewrites the default template identity across core files
+- `pnpm backend:dev` starts the optional headless Bevy backend reference
 - `src/runtime_app.rs` keeps native and web bootstrap logic on one contract
 - `src/starter_scene.rs` gives every new project a visible first slice with objectives, score, and shell-visible runtime state
 - the web shell now includes a local-first save matrix with slots, match/session state, progression meta, and JSON export/import
@@ -92,6 +93,7 @@ Bevy runtime`.
 - a visible starter scene that proves the runtime is live on first launch
 - a small gameplay loop with uplink capture progress, score, and repeating rounds
 - local save-slot persistence for preferences, last run, best run, progression meta, and recent sessions
+- optional headless Bevy backend reference for remote profile/session authority
 - minimal shell-to-runtime bridge:
   - boot status sink
   - runtime event sink
@@ -138,6 +140,25 @@ Then open:
 - `http://127.0.0.1:3000`
 
 The starter slice should boot into a visible arena with a movable player marker.
+
+### Run optional headless backend
+
+```bash
+pnpm backend:dev
+```
+
+This starts the reference backend at `http://127.0.0.1:8787`.
+
+Available endpoints:
+
+- `GET /health`
+- `GET /snapshot`
+- `GET /profiles`
+- `GET /profiles/:slot_id`
+- `PUT /profiles/:slot_id`
+- `GET /sessions`
+- `POST /sessions`
+- `PATCH /sessions/:session_id`
 
 ### Build web shell
 
@@ -194,6 +215,24 @@ The web shell now ships with a local-first product shell contract:
 This is intentionally shell-owned and browser-local. If you later add auth,
 cloud save, or backend match state, you can swap the storage backend without
 rewriting the Bevy runtime.
+
+## Optional Headless Backend
+
+This repo now also ships an optional reference backend in
+[`server/headless_runtime`](./server/headless_runtime).
+
+Use it when you want to evolve from:
+
+- local-only save/session state
+
+to:
+
+- remote profile persistence
+- room/session orchestration
+- headless authority for multiplayer or cloud save
+
+The backend is intentionally not required by the default template path. Treat it
+as a reference scaffold, not a hard dependency.
 
 ## Replaceable Boundaries
 
@@ -292,6 +331,7 @@ Use this template when your game needs:
 - [`CONTRIBUTING.md`](./CONTRIBUTING.md) defines the required verification loop
 - [`SECURITY.md`](./SECURITY.md) defines reporting expectations for template issues
 - [`docs/COMMERCIAL_TEMPLATE_GUIDE.md`](./docs/COMMERCIAL_TEMPLATE_GUIDE.md) explains how to turn the template into a public or paid starter kit
+- [`server/headless_runtime/README.md`](./server/headless_runtime/README.md) documents the optional backend reference
 
 ## Updating the icons
  1. Replace `build/macos/icon_1024x1024.png` with a `1024` times `1024` pixel png icon and run `create_icns.sh` or `create_icns_linux.sh` if you use linux (make sure to run the script inside the `build/macos` directory) - _Note: `create_icns.sh` requires a mac, and `create_icns_linux.sh` requires imagemagick and png2icns_

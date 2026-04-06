@@ -17,6 +17,7 @@ Frame the template around three promises:
 - local save slots
 - match/session summaries
 - progression meta
+- optional headless backend reference
 - rename automation
 - browser smoke in CI
 

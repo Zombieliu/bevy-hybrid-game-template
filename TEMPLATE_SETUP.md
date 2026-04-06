@@ -53,6 +53,7 @@ pnpm install
 pnpm dev
 pnpm build
 pnpm smoke:web
+pnpm backend:check
 cargo run
 ```
 
