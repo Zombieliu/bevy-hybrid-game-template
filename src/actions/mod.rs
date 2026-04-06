@@ -4,6 +4,7 @@ use bevy::prelude::*;
 use crate::GameState;
 use crate::actions::game_control::{GameControl, get_movement};
 use crate::player::Player;
+use crate::web_bridge::read_runtime_virtual_input;
 
 mod game_control;
 
@@ -53,6 +54,12 @@ pub fn set_movement_actions(
         if diff.length() > FOLLOW_EPSILON {
             player_movement = diff.normalize();
         }
+    }
+
+    if let Some(external_input) = read_runtime_virtual_input()
+        && external_input.length_squared() > 0.
+    {
+        player_movement = external_input.normalize();
     }
 
     if player_movement != Vec2::ZERO {

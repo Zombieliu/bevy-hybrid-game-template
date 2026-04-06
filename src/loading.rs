@@ -12,7 +12,7 @@ impl Plugin for LoadingPlugin {
     fn build(&self, app: &mut App) {
         app.add_loading_state(
             LoadingState::new(GameState::Loading)
-                .continue_to_state(GameState::Menu)
+                .continue_to_state(GameState::Playing)
                 .load_collection::<AudioAssets>()
                 .load_collection::<TextureAssets>(),
         );
@@ -32,6 +32,4 @@ pub struct AudioAssets {
 pub struct TextureAssets {
     #[asset(path = "textures/bevy.png")]
     pub bevy: Handle<Image>,
-    #[asset(path = "textures/github.png")]
-    pub github: Handle<Image>,
 }

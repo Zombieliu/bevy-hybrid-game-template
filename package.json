@@ -1,0 +1,15 @@
+{
+  "name": "bevy-hybrid-game-template",
+  "private": true,
+  "scripts": {
+    "native": "cargo run",
+    "runtime:build:dev": "bash scripts/build-bevy-runtime.sh dev",
+    "runtime:build:release": "bash scripts/build-bevy-runtime.sh release",
+    "web:dev": "pnpm runtime:build:dev && pnpm --dir apps/web dev",
+    "web:build": "pnpm runtime:build:release && pnpm --dir apps/web build",
+    "dev": "pnpm web:dev",
+    "build": "pnpm web:build",
+    "typecheck": "pnpm --dir apps/web typecheck"
+  },
+  "packageManager": "pnpm@9.15.4"
+}

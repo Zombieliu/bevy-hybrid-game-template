@@ -11,11 +11,10 @@ on:
         required: true
         type: string
 
-# ToDo: adapt names
 env:
   # This variable is used to name release output files.
-  GAME_EXECUTABLE_NAME: bevy_game
-  GAME_OSX_APP_NAME: BevyGame
+  GAME_EXECUTABLE_NAME: bevy_hybrid_game
+  GAME_OSX_APP_NAME: BevyHybridGame
 
 permissions:
   contents: write
@@ -183,26 +182,26 @@ jobs:
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: stable
-      - name: Install Dependencies
-        run: sudo apt-get update; sudo apt-get install g++ pkg-config libx11-dev libasound2-dev libudev-dev libxkbcommon-x11-0 libwayland-dev
-      - name: Install trunk
-        uses: jetli/trunk-action@v0.4.0
+          targets: wasm32-unknown-unknown
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
         with:
-          version: latest
-      - name: Add wasm target
-        run: |
-          rustup target add wasm32-unknown-unknown
+          version: 9.15.4
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - name: Install wasm-pack
+        run: cargo install wasm-pack --locked
+      - name: Install web dependencies
+        run: pnpm install --frozen-lockfile
       - name: Build Release
-        run: |
-          trunk build --release
-      - name: Optimize Wasm
-        uses: NiklasEi/wasm-opt-action@v2
-        with:
-          file: dist/*.wasm
+        run: pnpm build
       - name: Zip release
         uses: vimtor/action-zip@v1.1
         with:
-          files: dist/
+          files: apps/web/out/
           dest: ${{ env.GAME_EXECUTABLE_NAME }}_web.zip
       - name: Upload release
         uses: svenstaro/upload-release-action@v2

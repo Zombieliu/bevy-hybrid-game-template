@@ -321,16 +321,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c08606f8c3cbf4ce6ec8e28fb0014a2c086708fe954eaa885384a6165172e7e8"
 
 [[package]]
-name = "base64"
-version = "0.22.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6"
-
-[[package]]
 name = "bevy"
-version = "0.18.0"
+version = "0.18.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ec689b5a79452b6f777b889bbff22d3216b82a8d2ab7814d4a0eb571e9938d97"
+checksum = "1fd310426290cec560221f9750c2f4484be4a8eeea7de3483c423329b465c40e"
 dependencies = [
  "bevy_dylib",
  "bevy_internal",
@@ -371,7 +365,6 @@ dependencies = [
  "bevy_derive",
  "bevy_ecs",
  "bevy_math",
- "bevy_mesh",
  "bevy_platform",
  "bevy_reflect",
  "bevy_time",
@@ -721,21 +714,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bevy_game"
-version = "0.1.0"
-dependencies = [
- "bevy",
- "bevy_asset_loader",
- "bevy_kira_audio",
- "embed-resource",
- "image",
- "log",
- "rand",
- "webbrowser",
- "winit",
-]
-
-[[package]]
 name = "bevy_gilrs"
 version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -763,7 +741,6 @@ dependencies = [
  "bevy_color",
  "bevy_ecs",
  "bevy_gizmos_macros",
- "bevy_light",
  "bevy_math",
  "bevy_reflect",
  "bevy_time",
@@ -797,7 +774,6 @@ dependencies = [
  "bevy_image",
  "bevy_math",
  "bevy_mesh",
- "bevy_pbr",
  "bevy_render",
  "bevy_shader",
  "bevy_sprite_render",
@@ -808,39 +784,20 @@ dependencies = [
 ]
 
 [[package]]
-name = "bevy_gltf"
-version = "0.18.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "08372f222676dba313061fc71128209b82f9711e7c5cba222b5c34bf1c5c70fe"
+name = "bevy_hybrid_game"
+version = "0.1.0"
 dependencies = [
- "async-lock",
- "base64",
- "bevy_animation",
- "bevy_app",
- "bevy_asset",
- "bevy_camera",
- "bevy_color",
- "bevy_ecs",
- "bevy_image",
- "bevy_light",
- "bevy_math",
- "bevy_mesh",
- "bevy_pbr",
- "bevy_platform",
- "bevy_reflect",
- "bevy_render",
- "bevy_scene",
- "bevy_tasks",
- "bevy_transform",
- "fixedbitset",
- "gltf",
- "itertools 0.14.0",
- "percent-encoding",
- "serde",
- "serde_json",
- "smallvec",
- "thiserror 2.0.17",
- "tracing",
+ "bevy",
+ "bevy_asset_loader",
+ "bevy_kira_audio",
+ "console_error_panic_hook",
+ "embed-resource",
+ "image",
+ "js-sys",
+ "log",
+ "wasm-bindgen",
+ "webbrowser",
+ "winit",
 ]
 
 [[package]]
@@ -863,9 +820,7 @@ dependencies = [
  "guillotiere",
  "half",
  "image",
- "ktx2",
  "rectangle-pack",
- "ruzstd",
  "serde",
  "thiserror 2.0.17",
  "tracing",
@@ -899,7 +854,6 @@ dependencies = [
  "bevy_ecs",
  "bevy_input",
  "bevy_math",
- "bevy_picking",
  "bevy_reflect",
  "bevy_window",
  "log",
@@ -928,16 +882,13 @@ dependencies = [
  "bevy_gilrs",
  "bevy_gizmos",
  "bevy_gizmos_render",
- "bevy_gltf",
  "bevy_image",
  "bevy_input",
  "bevy_input_focus",
- "bevy_light",
  "bevy_log",
  "bevy_math",
  "bevy_mesh",
  "bevy_pbr",
- "bevy_picking",
  "bevy_platform",
  "bevy_post_process",
  "bevy_ptr",
@@ -1128,13 +1079,11 @@ dependencies = [
  "bevy_ecs",
  "bevy_input",
  "bevy_math",
- "bevy_mesh",
  "bevy_platform",
  "bevy_reflect",
  "bevy_time",
  "bevy_transform",
  "bevy_window",
- "crossbeam-channel",
  "tracing",
  "uuid",
 ]
@@ -1354,7 +1303,6 @@ dependencies = [
  "bevy_image",
  "bevy_math",
  "bevy_mesh",
- "bevy_picking",
  "bevy_reflect",
  "bevy_text",
  "bevy_transform",
@@ -1519,7 +1467,6 @@ dependencies = [
  "bevy_input",
  "bevy_input_focus",
  "bevy_math",
- "bevy_picking",
  "bevy_platform",
  "bevy_reflect",
  "bevy_sprite",
@@ -1532,7 +1479,6 @@ dependencies = [
  "taffy",
  "thiserror 2.0.17",
  "tracing",
- "uuid",
 ]
 
 [[package]]
@@ -1705,15 +1651,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2c132eebf10f5cad5289222520a4a058514204aed6d791f1cf4fe8088b82d15f"
 dependencies = [
  "objc2 0.5.2",
-]
-
-[[package]]
-name = "block2"
-version = "0.6.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cdeb9d870516001442e364c5220d3574d2da8dc765554b4a617230d33fa58ef5"
-dependencies = [
- "objc2 0.6.3",
 ]
 
 [[package]]
@@ -2627,42 +2564,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "gltf"
-version = "1.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e3ce1918195723ce6ac74e80542c5a96a40c2b26162c1957a5cd70799b8cacf7"
-dependencies = [
- "byteorder",
- "gltf-json",
- "lazy_static",
- "serde_json",
-]
-
-[[package]]
-name = "gltf-derive"
-version = "1.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "14070e711538afba5d6c807edb74bcb84e5dbb9211a3bf5dea0dfab5b24f4c51"
-dependencies = [
- "inflections",
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
-name = "gltf-json"
-version = "1.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e6176f9d60a7eab0a877e8e96548605dedbde9190a7ae1e80bbcc1c9af03ab14"
-dependencies = [
- "gltf-derive",
- "serde",
- "serde_derive",
- "serde_json",
-]
-
-[[package]]
 name = "glutin_wgl_sys"
 version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2960,12 +2861,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "inflections"
-version = "1.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a257582fdcde896fd96463bf2d40eefea0580021c0712a0e2b028b60b47a837a"
-
-[[package]]
 name = "inotify"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3021,12 +2916,6 @@ checksum = "2b192c782037fadd9cfa75548310488aabdbf3d2da73885b31bd0abd03351285"
 dependencies = [
  "either",
 ]
-
-[[package]]
-name = "itoa"
-version = "1.0.15"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4a5f13b858c8d314ee3e8f639011f7ccefe71f97f96e50151fb991f267928e2c"
 
 [[package]]
 name = "jni"
@@ -3102,15 +2991,6 @@ dependencies = [
  "send_wrapper",
  "symphonia",
  "triple_buffer",
-]
-
-[[package]]
-name = "ktx2"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ff7f53bdf698e7aa7ec916411bbdc8078135da11b66db5182675b2227f6c0d07"
-dependencies = [
- "bitflags 2.10.0",
 ]
 
 [[package]]
@@ -3285,15 +3165,6 @@ name = "mint"
 version = "0.5.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e53debba6bda7a793e5f99b8dacf19e626084f525f7829104ba9898f367d85ff"
-
-[[package]]
-name = "mobile"
-version = "0.1.0"
-dependencies = [
- "bevy",
- "bevy_game",
- "objc2-avf-audio",
-]
 
 [[package]]
 name = "moxcms"
@@ -3532,7 +3403,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e4e89ad9e3d7d297152b17d39ed92cd50ca8063a89a9fa569046d41568891eff"
 dependencies = [
  "bitflags 2.10.0",
- "block2 0.5.1",
+ "block2",
  "libc",
  "objc2 0.5.2",
  "objc2-core-data",
@@ -3542,39 +3413,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "objc2-audio-toolbox"
-version = "0.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6948501a91121d6399b79abaa33a8aa4ea7857fe019f341b8c23ad6e81b79b08"
-dependencies = [
- "bitflags 2.10.0",
- "block2 0.6.2",
- "objc2 0.6.3",
- "objc2-foundation 0.3.2",
-]
-
-[[package]]
-name = "objc2-avf-audio"
-version = "0.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "13a380031deed8e99db00065c45937da434ca987c034e13b87e4441f9e4090be"
-dependencies = [
- "bitflags 2.10.0",
- "block2 0.6.2",
- "objc2 0.6.3",
- "objc2-audio-toolbox",
- "objc2-core-audio-types",
- "objc2-foundation 0.3.2",
-]
-
-[[package]]
 name = "objc2-cloud-kit"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "74dd3b56391c7a0596a295029734d3c1c5e7e510a4cb30245f8221ccea96b009"
 dependencies = [
  "bitflags 2.10.0",
- "block2 0.5.1",
+ "block2",
  "objc2 0.5.2",
  "objc2-core-location",
  "objc2-foundation 0.2.2",
@@ -3586,19 +3431,9 @@ version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a5ff520e9c33812fd374d8deecef01d4a840e7b41862d849513de77e44aa4889"
 dependencies = [
- "block2 0.5.1",
+ "block2",
  "objc2 0.5.2",
  "objc2-foundation 0.2.2",
-]
-
-[[package]]
-name = "objc2-core-audio-types"
-version = "0.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5a89f2ec274a0cf4a32642b2991e8b351a404d290da87bb6a9a9d8632490bd1c"
-dependencies = [
- "bitflags 2.10.0",
- "objc2 0.6.3",
 ]
 
 [[package]]
@@ -3608,7 +3443,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "617fbf49e071c178c0b24c080767db52958f716d9eabdf0890523aeae54773ef"
 dependencies = [
  "bitflags 2.10.0",
- "block2 0.5.1",
+ "block2",
  "objc2 0.5.2",
  "objc2-foundation 0.2.2",
 ]
@@ -3628,7 +3463,7 @@ version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "55260963a527c99f1819c4f8e3b47fe04f9650694ef348ffd2227e8196d34c80"
 dependencies = [
- "block2 0.5.1",
+ "block2",
  "objc2 0.5.2",
  "objc2-foundation 0.2.2",
  "objc2-metal",
@@ -3640,7 +3475,7 @@ version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "000cfee34e683244f284252ee206a27953279d370e309649dc3ee317b37e5781"
 dependencies = [
- "block2 0.5.1",
+ "block2",
  "objc2 0.5.2",
  "objc2-contacts",
  "objc2-foundation 0.2.2",
@@ -3659,7 +3494,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0ee638a5da3799329310ad4cfa62fbf045d5f56e3ef5ba4149e7452dcf89d5a8"
 dependencies = [
  "bitflags 2.10.0",
- "block2 0.5.1",
+ "block2",
  "dispatch",
  "libc",
  "objc2 0.5.2",
@@ -3691,7 +3526,7 @@ version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a1a1ae721c5e35be65f01a03b6d2ac13a54cb4fa70d8a5da293d7b0020261398"
 dependencies = [
- "block2 0.5.1",
+ "block2",
  "objc2 0.5.2",
  "objc2-app-kit",
  "objc2-foundation 0.2.2",
@@ -3704,7 +3539,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dd0cba1276f6023976a406a14ffa85e1fdd19df6b0f737b063b95f6c8c7aadd6"
 dependencies = [
  "bitflags 2.10.0",
- "block2 0.5.1",
+ "block2",
  "objc2 0.5.2",
  "objc2-foundation 0.2.2",
 ]
@@ -3716,7 +3551,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e42bee7bff906b14b167da2bac5efe6b6a07e6f7c0a21a7308d40c960242dc7a"
 dependencies = [
  "bitflags 2.10.0",
- "block2 0.5.1",
+ "block2",
  "objc2 0.5.2",
  "objc2-foundation 0.2.2",
  "objc2-metal",
@@ -3739,7 +3574,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b8bb46798b20cd6b91cbd113524c490f1686f4c4e8f49502431415f3512e2b6f"
 dependencies = [
  "bitflags 2.10.0",
- "block2 0.5.1",
+ "block2",
  "objc2 0.5.2",
  "objc2-cloud-kit",
  "objc2-core-data",
@@ -3759,7 +3594,7 @@ version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "44fa5f9748dbfe1ca6c0b79ad20725a11eca7c2218bceb4b005cb1be26273bfe"
 dependencies = [
- "block2 0.5.1",
+ "block2",
  "objc2 0.5.2",
  "objc2-foundation 0.2.2",
 ]
@@ -3771,7 +3606,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "76cfcbf642358e8689af64cee815d139339f3ed8ad05103ed5eaf73db8d84cb3"
 dependencies = [
  "bitflags 2.10.0",
- "block2 0.5.1",
+ "block2",
  "objc2 0.5.2",
  "objc2-core-location",
  "objc2-foundation 0.2.2",
@@ -4307,21 +4142,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b39cdef0fa800fc44525c84ccb54a029961a8215f9619753635a9c0d2538d46d"
 
 [[package]]
-name = "ruzstd"
-version = "0.8.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3640bec8aad418d7d03c72ea2de10d5c646a598f9883c7babc160d91e3c1b26c"
-dependencies = [
- "twox-hash",
-]
-
-[[package]]
-name = "ryu"
-version = "1.0.20"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "28d3b2b1366ec20994f1fd18c3c594f05c5dd4bc44d8bb0c1c632c8d6829481f"
-
-[[package]]
 name = "same-file"
 version = "1.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4401,19 +4221,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
-]
-
-[[package]]
-name = "serde_json"
-version = "1.0.145"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "402a6f66d8c709116cf22f558eab210f5a50187f702eb4d7e5ef38d9a7f1c79c"
-dependencies = [
- "itoa",
- "memchr",
- "ryu",
- "serde",
- "serde_core",
 ]
 
 [[package]]
@@ -4947,12 +4754,6 @@ checksum = "d2df906b07856748fa3f6e0ad0cbaa047052d4a7dd609e231c4f72cee8c36f31"
 dependencies = [
  "core_maths",
 ]
-
-[[package]]
-name = "twox-hash"
-version = "2.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9ea3136b675547379c4bd395ca6b938e5ad3c3d20fad76e7fe85f9e0d011419c"
 
 [[package]]
 name = "typeid"
@@ -5950,7 +5751,7 @@ dependencies = [
  "android-activity",
  "atomic-waker",
  "bitflags 2.10.0",
- "block2 0.5.1",
+ "block2",
  "bytemuck",
  "calloop",
  "cfg_aliases",
