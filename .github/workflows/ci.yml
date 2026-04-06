@@ -92,7 +92,11 @@ jobs:
         run: cargo install wasm-pack --locked
       - name: Install web dependencies
         run: pnpm install --frozen-lockfile
+      - name: Install Playwright browser
+        run: pnpm exec playwright install --with-deps chromium
       - name: Typecheck web shell
         run: pnpm typecheck
       - name: Build web shell
         run: pnpm build
+      - name: Smoke test web shell
+        run: SMOKE_WEB_SKIP_BUILD=1 pnpm smoke:web

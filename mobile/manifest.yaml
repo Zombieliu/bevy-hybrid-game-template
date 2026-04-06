@@ -8,4 +8,4 @@ android:
     package: "com.zombieliu.bevyhybridgame"
     version_code: 1
     application:
-      label: "Bevy Hybrid Game"
+      label: "Bevy Hybrid Game Template"

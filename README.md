@@ -44,6 +44,8 @@ and packaging checklist in [`TEMPLATE_SETUP.md`](./TEMPLATE_SETUP.md).
 - `cargo run` starts the native runtime
 - `pnpm dev` starts the Next.js shell and embedded Bevy WASM runtime
 - `pnpm build` exports a static web artifact from `apps/web/out`
+- `pnpm smoke:web` boots the shell, launches the runtime, and validates scene/input flow
+- `pnpm rename:template -- ...` rewrites the default template identity across core files
 - `src/runtime_app.rs` keeps native and web bootstrap logic on one contract
 - `src/starter_scene.rs` gives every new project a visible, movable first slice
 
@@ -132,6 +134,17 @@ pnpm runtime:build:dev
 pnpm runtime:build:release
 ```
 
+### Run browser smoke
+
+```bash
+pnpm smoke:web
+```
+
+This builds the web export when needed, serves the generated static shell on a
+local port, launches Chromium, clicks `Launch Runtime`, waits for
+`scene-ready`, sends virtual input, and saves smoke artifacts under
+`output/playwright/smoke-web`.
+
 ## Shared Runtime Bootstrap
 
 Both native and web now use the same app bootstrap in
@@ -164,6 +177,24 @@ If you start a real project, replace the starter scene plugin first, not the web
 When you create a new game from this template, start with
 [`TEMPLATE_SETUP.md`](./TEMPLATE_SETUP.md) before changing gameplay code.
 
+## Rename The Template
+
+After generating a new repo, run:
+
+```bash
+pnpm rename:template -- \
+  --display-name "My Game" \
+  --crate-name my_game \
+  --repo-slug my-game \
+  --bundle-id com.example.mygame \
+  --author-name "Your Name" \
+  --repo-url https://github.com/you/my-game
+```
+
+This updates the default runtime identity, bundle metadata, package names, and
+repo links across the main template surfaces. It is a starting pass, not a
+substitute for product-level review.
+
 ## Repository Shape
 
 - [`src`](./src)
@@ -192,8 +223,16 @@ Use this template when your game needs:
 ## CI And Deployment
 
 - GitHub CI now validates both the Rust crate and the web shell
+- GitHub CI installs Chromium and runs `pnpm smoke:web` against the hybrid shell
 - GitHub Pages deployment uses the exported `apps/web/out` artifact
 - GitHub release web artifacts zip the same exported static site
+
+## Maintenance
+
+- [`VERSION`](./VERSION) tracks the current template release line
+- [`CHANGELOG.md`](./CHANGELOG.md) records downstream-relevant template changes
+- [`CONTRIBUTING.md`](./CONTRIBUTING.md) defines the required verification loop
+- [`SECURITY.md`](./SECURITY.md) defines reporting expectations for template issues
 
 ## Updating the icons
  1. Replace `build/macos/icon_1024x1024.png` with a `1024` times `1024` pixel png icon and run `create_icns.sh` or `create_icns_linux.sh` if you use linux (make sure to run the script inside the `build/macos` directory) - _Note: `create_icns.sh` requires a mac, and `create_icns_linux.sh` requires imagemagick and png2icns_

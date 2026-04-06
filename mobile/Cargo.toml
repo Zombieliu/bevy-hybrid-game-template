@@ -20,7 +20,7 @@ objc2-avf-audio = { version = "0.3.0", features = [
 
 [package.metadata.android]
 package = "com.zombieliu.bevyhybridgame"
-apk_name = "BevyHybridGame"
+apk_name = "BevyHybridGameTemplate"
 assets = "../assets"
 strip = "strip"
 resources = "../build/android/res"
@@ -31,4 +31,4 @@ target_sdk_version = 35
 
 [package.metadata.android.application]
 icon = "@mipmap/icon"
-label = "Bevy Hybrid Game"
+label = "Bevy Hybrid Game Template"

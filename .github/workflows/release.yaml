@@ -14,7 +14,7 @@ on:
 env:
   # This variable is used to name release output files.
   GAME_EXECUTABLE_NAME: bevy_hybrid_game
-  GAME_OSX_APP_NAME: BevyHybridGame
+  GAME_OSX_APP_NAME: BevyHybridGameTemplate
 
 permissions:
   contents: write

@@ -4,12 +4,32 @@ Use this after creating a new repo from the template.
 
 ## 1. Rename Runtime Identity
 
-- Update the root crate name in `Cargo.toml`
-- Update `use bevy_hybrid_game::...` imports in `src/main.rs` and `mobile/src/lib.rs`
-- Update release executable names in `.github/workflows/release.yaml`
-- Update Android package / apk labels in `mobile/Cargo.toml` and `mobile/manifest.yaml`
-- Update macOS bundle strings in `build/macos/src/Game.app/Contents/Info.plist`
-- Update Windows installer metadata in `build/windows/installer/Package.wxs`
+Run the built-in rename script first:
+
+```bash
+pnpm rename:template -- \
+  --display-name "My Game" \
+  --crate-name my_game \
+  --repo-slug my-game \
+  --bundle-id com.example.mygame \
+  --author-name "Your Name" \
+  --repo-url https://github.com/you/my-game
+```
+
+This rewrites the main template identity in:
+
+- `Cargo.toml`
+- `src/main.rs`
+- `src/runtime_app.rs`
+- `mobile/Cargo.toml`
+- `mobile/manifest.yaml`
+- `build/macos/src/Game.app/Contents/Info.plist`
+- `build/windows/installer/Package.wxs`
+- `apps/web/package.json`
+- `apps/web/app/layout.tsx`
+- `apps/web/components/game-shell.tsx`
+
+Then manually review the diff before your first commit.
 
 ## 2. Replace Template Branding
 
@@ -20,9 +40,10 @@ Use this after creating a new repo from the template.
 
 ## 3. Set Repo Metadata
 
-- Add your GitHub repo URL to `Cargo.toml`
 - Update `LICENSE` if you do not want to keep `CC0-1.0`
 - Rewrite the first section of `README.md` for your game or studio
+- Reset `CHANGELOG.md` if you do not want to inherit template release history
+- Confirm `VERSION` matches your intended starting tag
 
 ## 4. Verify Both Targets
 
@@ -30,6 +51,7 @@ Use this after creating a new repo from the template.
 pnpm install
 pnpm dev
 pnpm build
+pnpm smoke:web
 cargo run
 ```
 
