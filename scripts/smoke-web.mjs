@@ -166,10 +166,18 @@ async function runSmoke(url) {
     await rightButton.dispatchEvent("pointerup");
     await sleep(500);
 
-    const statusPanel = page.locator("section.panel").nth(1);
+    const statusPanel = page.locator("section.panel").filter({ hasText: "Status" }).first();
     const statusText = await statusPanel.innerText();
-    const profilePanel = page.locator("section.panel").nth(3);
-    const profileText = await profilePanel.innerText();
+    const progressionPanel = page
+      .locator("section.panel")
+      .filter({ hasText: "Progression Meta" })
+      .first();
+    const progressionText = await progressionPanel.innerText();
+    const sessionPanel = page
+      .locator("section.panel")
+      .filter({ hasText: "Match Contract" })
+      .first();
+    const sessionText = await sessionPanel.innerText();
 
     if (!/Runtime active:\s+yes/i.test(statusText)) {
       throw new Error(`Smoke failed: runtime never became active.\n${statusText}`);
@@ -179,15 +187,23 @@ async function runSmoke(url) {
       throw new Error(`Smoke failed: runtime position never changed.\n${statusText}`);
     }
 
-    if (!/Runs\s+1/i.test(profileText) || !/Best Score/i.test(profileText)) {
-      throw new Error(`Smoke failed: profile panel did not update.\n${profileText}`);
+    if (!/Total launches:\s+1/i.test(progressionText) || !/Level/i.test(progressionText)) {
+      throw new Error(`Smoke failed: progression panel did not update.\n${progressionText}`);
     }
 
-    await page.getByRole("button", { name: "Copy Save JSON" }).click();
+    if (!/Status/i.test(sessionText) || !/slot-1-run-1-round-1/i.test(sessionText)) {
+      throw new Error(`Smoke failed: session contract did not materialize.\n${sessionText}`);
+    }
+
+    await page.getByRole("button", { name: "Copy Save Matrix" }).click();
     const profileJson = await page.locator("textarea.profile-textarea").inputValue();
 
-    if (!/"version": 1/.test(profileJson) || !/"runsLaunched": 1/.test(profileJson)) {
-      throw new Error(`Smoke failed: profile export payload is incomplete.\n${profileJson}`);
+    if (
+      !/"activeSlotId": "slot-1"/.test(profileJson) ||
+      !/"runsLaunched": 1/.test(profileJson) ||
+      !/"totalRuns": 1/.test(profileJson)
+    ) {
+      throw new Error(`Smoke failed: save export payload is incomplete.\n${profileJson}`);
     }
 
     if (pageErrors.length > 0) {
@@ -197,7 +213,7 @@ async function runSmoke(url) {
     await page.screenshot({ path: path.join(outputDir, "smoke-web.png"), fullPage: true });
     await writeFile(
       path.join(outputDir, "smoke-web.txt"),
-      `${statusText}\n\nPROFILE\n${profileText}\n`,
+      `${statusText}\n\nSESSION\n${sessionText}\n\nPROGRESSION\n${progressionText}\n`,
     );
   } finally {
     await browser.close();

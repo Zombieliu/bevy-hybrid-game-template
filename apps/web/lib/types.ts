@@ -72,6 +72,56 @@ export type RuntimeProfile = {
   updatedAt: string | null;
 };
 
+export type SaveSlotId = "slot-1" | "slot-2" | "slot-3";
+
+export type ProgressionBadge =
+  | "first-launch"
+  | "first-sweep"
+  | "score-300"
+  | "loop-3";
+
+export type RuntimeProgression = {
+  xp: number;
+  level: number;
+  totalRuns: number;
+  totalSweeps: number;
+  unlockedBadges: ProgressionBadge[];
+  updatedAt: string | null;
+};
+
+export type MatchSessionStatus = "staging" | "live" | "completed";
+
+export type MatchSessionRecord = {
+  id: string;
+  template: "uplink-sweep";
+  slotId: SaveSlotId;
+  playerName: string;
+  status: MatchSessionStatus;
+  round: number;
+  objective: string;
+  score: number;
+  captured: number;
+  total: number;
+  startedAt: string;
+  updatedAt: string;
+  endedAt: string | null;
+};
+
+export type RuntimeSaveSlot = {
+  id: SaveSlotId;
+  label: string;
+  profile: RuntimeProfile;
+  progression: RuntimeProgression;
+  recentSessions: MatchSessionRecord[];
+  updatedAt: string | null;
+};
+
+export type RuntimeSaveCollection = {
+  version: 1;
+  activeSlotId: SaveSlotId;
+  slots: RuntimeSaveSlot[];
+};
+
 export type UiIntent =
   | {
       type: "runtime.boot";
@@ -148,5 +198,14 @@ export const DEFAULT_RUNTIME_PROFILE: RuntimeProfile = {
   lastScore: 0,
   lastRound: 0,
   lastCaptured: 0,
+  updatedAt: null,
+};
+
+export const DEFAULT_RUNTIME_PROGRESSION: RuntimeProgression = {
+  xp: 0,
+  level: 1,
+  totalRuns: 0,
+  totalSweeps: 0,
+  unlockedBadges: [],
   updatedAt: null,
 };

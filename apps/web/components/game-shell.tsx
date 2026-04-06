@@ -2,14 +2,20 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
-  clearStoredProfile,
-  exportRuntimeProfile,
-  importRuntimeProfile,
-  loadStoredProfile,
+  clearStoredSaveCollection,
+  defaultSaveCollection,
+  defaultSaveSlot,
+  exportSaveCollection,
+  getActiveSlot,
+  importSaveCollection,
+  loadStoredSaveCollection,
   profileToBootConfig,
-  saveStoredProfile,
-  sanitizeRuntimeProfile,
-} from "@/lib/profile-store";
+  replaceSlot,
+  saveStoredSaveCollection,
+  sanitizeProgression,
+  sanitizeSaveSlot,
+  sanitizeSlotLabel,
+} from "@/lib/save-slots-store";
 import {
   bootRuntimeBridge,
   dispatchUiIntent,
@@ -17,17 +23,19 @@ import {
   sanitizeRuntimeBootConfig,
   subscribeRuntimeEvents,
 } from "@/lib/web-bridge";
-import {
-  DEFAULT_RUNTIME_PROFILE,
-} from "@/lib/types";
 import type {
+  MatchSessionRecord,
+  ProgressionBadge,
   RuntimeBootConfig,
   RuntimeBootRecord,
-  RuntimeProfile,
+  RuntimeProgression,
+  RuntimeSaveCollection,
+  RuntimeSaveSlot,
   RuntimeSnapshot,
+  SaveSlotId,
 } from "@/lib/types";
 
-const STORAGE_KEY = "bevy-hybrid-game-template.launcher.v1";
+const LAUNCHER_STORAGE_KEY = "bevy-hybrid-game-template.launcher.v1";
 
 type ControlKey = "up" | "down" | "left" | "right";
 
@@ -45,16 +53,23 @@ export function GameShell() {
   const [runtimeSnapshot, setRuntimeSnapshot] =
     useState<RuntimeSnapshot>(getRuntimeSnapshot);
   const [controls, setControls] = useState<ControlState>(DEFAULT_CONTROL_STATE);
-  const [profile, setProfile] = useState<RuntimeProfile>(DEFAULT_RUNTIME_PROFILE);
-  const [profileDraft, setProfileDraft] = useState("");
-  const [profileMessage, setProfileMessage] = useState<string | null>(null);
+  const [saveCollection, setSaveCollection] =
+    useState<RuntimeSaveCollection>(defaultSaveCollection);
+  const [saveDraft, setSaveDraft] = useState("");
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [currentSession, setCurrentSession] = useState<MatchSessionRecord | null>(
+    null,
+  );
   const lastSceneReadyEventId = useRef<number | null>(null);
+  const lastArchivedSessionId = useRef<string | null>(null);
+
+  const activeSlot = getActiveSlot(saveCollection);
 
   useEffect(() => {
-    const storedProfile = loadStoredProfile();
-    setProfile(storedProfile);
+    const storedCollection = loadStoredSaveCollection();
+    setSaveCollection(storedCollection);
 
-    const initialConfig = readStoredBootConfig(storedProfile);
+    const initialConfig = readStoredBootConfig(storedCollection);
     setRuntimeSnapshot(
       bootRuntimeBridge({
         initialConfig,
@@ -72,30 +87,42 @@ export function GameShell() {
   useEffect(() => {
     try {
       window.localStorage.setItem(
-        STORAGE_KEY,
+        LAUNCHER_STORAGE_KEY,
         JSON.stringify(runtimeSnapshot.bootConfig),
       );
     } catch {}
   }, [runtimeSnapshot.bootConfig]);
 
   useEffect(() => {
-    setProfile((current) => {
-      const next = sanitizeRuntimeProfile({
-        ...current,
-        preferredPlayerName: runtimeSnapshot.bootConfig.playerName,
-        preferredTouchControls: runtimeSnapshot.bootConfig.touchControls,
-        updatedAt: new Date().toISOString(),
-      });
+    if (!clientReady) {
+      return;
+    }
 
-      saveStoredProfile(next);
-      return next;
+    updateSlot(activeSlot.id, (slot) => {
+      const now = new Date().toISOString();
+      return {
+        ...slot,
+        profile: {
+          ...slot.profile,
+          preferredPlayerName: runtimeSnapshot.bootConfig.playerName,
+          preferredTouchControls: runtimeSnapshot.bootConfig.touchControls,
+          updatedAt: now,
+        },
+        updatedAt: now,
+      };
     });
-  }, [runtimeSnapshot.bootConfig.playerName, runtimeSnapshot.bootConfig.touchControls]);
+  }, [
+    activeSlot.id,
+    clientReady,
+    runtimeSnapshot.bootConfig.playerName,
+    runtimeSnapshot.bootConfig.touchControls,
+  ]);
 
   useEffect(() => {
     const currentBoot = runtimeSnapshot.boot.current;
 
     if (
+      !clientReady ||
       currentBoot.phase !== "scene-ready" ||
       currentBoot.id === lastSceneReadyEventId.current
     ) {
@@ -104,46 +131,167 @@ export function GameShell() {
 
     lastSceneReadyEventId.current = currentBoot.id;
 
-    setProfile((current) => {
-      const next = sanitizeRuntimeProfile({
-        ...current,
-        runsLaunched: current.runsLaunched + 1,
-        updatedAt: new Date().toISOString(),
-      });
-      saveStoredProfile(next);
-      return next;
+    updateSlot(activeSlot.id, (slot) => {
+      const now = new Date().toISOString();
+      return {
+        ...slot,
+        profile: {
+          ...slot.profile,
+          runsLaunched: slot.profile.runsLaunched + 1,
+          updatedAt: now,
+        },
+        progression: awardLaunchProgression(slot.progression, now),
+        updatedAt: now,
+      };
     });
-  }, [runtimeSnapshot.boot.current]);
+  }, [activeSlot.id, clientReady, runtimeSnapshot.boot.current]);
 
   useEffect(() => {
-    if (!runtimeSnapshot.world.ready) {
+    if (!clientReady || !runtimeSnapshot.world.ready) {
       return;
     }
 
-    setProfile((current) => {
-      const next = sanitizeRuntimeProfile({
-        ...current,
+    updateSlot(activeSlot.id, (slot) => {
+      const now = new Date().toISOString();
+      const nextProfile = {
+        ...slot.profile,
         lastScore: runtimeSnapshot.world.slice.score,
         lastRound: runtimeSnapshot.world.slice.round,
         lastCaptured: runtimeSnapshot.world.slice.captured,
-        bestScore: Math.max(current.bestScore, runtimeSnapshot.world.slice.score),
-        bestRound: Math.max(current.bestRound, runtimeSnapshot.world.slice.round),
-        updatedAt: new Date().toISOString(),
-      });
+        bestScore: Math.max(slot.profile.bestScore, runtimeSnapshot.world.slice.score),
+        bestRound: Math.max(slot.profile.bestRound, runtimeSnapshot.world.slice.round),
+        updatedAt: now,
+      };
 
-      if (profilesEqual(current, next)) {
-        return current;
+      const nextProgression = awardProgressionMilestones(
+        slot.progression,
+        nextProfile.bestScore,
+        nextProfile.bestRound,
+        now,
+      );
+
+      if (
+        slot.profile.lastScore === nextProfile.lastScore &&
+        slot.profile.lastRound === nextProfile.lastRound &&
+        slot.profile.lastCaptured === nextProfile.lastCaptured &&
+        slot.profile.bestScore === nextProfile.bestScore &&
+        slot.profile.bestRound === nextProfile.bestRound &&
+        slot.progression.xp === nextProgression.xp &&
+        slot.progression.level === nextProgression.level &&
+        slot.progression.unlockedBadges.length ===
+          nextProgression.unlockedBadges.length
+      ) {
+        return slot;
       }
 
-      saveStoredProfile(next);
-      return next;
+      return {
+        ...slot,
+        profile: nextProfile,
+        progression: nextProgression,
+        updatedAt: now,
+      };
     });
   }, [
+    activeSlot.id,
+    clientReady,
     runtimeSnapshot.world.ready,
-    runtimeSnapshot.world.slice.score,
-    runtimeSnapshot.world.slice.round,
     runtimeSnapshot.world.slice.captured,
+    runtimeSnapshot.world.slice.round,
+    runtimeSnapshot.world.slice.score,
   ]);
+
+  useEffect(() => {
+    if (!runtimeSnapshot.world.ready) {
+      setCurrentSession(null);
+      return;
+    }
+
+    const nextSessionId = buildSessionId(
+      activeSlot.id,
+      activeSlot.profile.runsLaunched,
+      runtimeSnapshot.world.slice.round,
+    );
+
+    setCurrentSession((current) => {
+      const now = new Date().toISOString();
+      const nextStatus = runtimeSnapshot.world.slice.completed ? "completed" : "live";
+
+      if (!current || current.id !== nextSessionId) {
+        return {
+          id: nextSessionId,
+          template: "uplink-sweep",
+          slotId: activeSlot.id,
+          playerName:
+            runtimeSnapshot.world.player?.name ??
+            runtimeSnapshot.bootConfig.playerName,
+          status: nextStatus,
+          round: runtimeSnapshot.world.slice.round,
+          objective: runtimeSnapshot.world.slice.objective,
+          score: runtimeSnapshot.world.slice.score,
+          captured: runtimeSnapshot.world.slice.captured,
+          total: runtimeSnapshot.world.slice.total,
+          startedAt: now,
+          updatedAt: now,
+          endedAt: runtimeSnapshot.world.slice.completed ? now : null,
+        };
+      }
+
+      return {
+        ...current,
+        playerName:
+          runtimeSnapshot.world.player?.name ??
+          runtimeSnapshot.bootConfig.playerName,
+        status: nextStatus,
+        objective: runtimeSnapshot.world.slice.objective,
+        score: runtimeSnapshot.world.slice.score,
+        captured: runtimeSnapshot.world.slice.captured,
+        total: runtimeSnapshot.world.slice.total,
+        updatedAt: now,
+        endedAt:
+          runtimeSnapshot.world.slice.completed && !current.endedAt
+            ? now
+            : current.endedAt,
+      };
+    });
+  }, [
+    activeSlot.id,
+    activeSlot.profile.runsLaunched,
+    runtimeSnapshot.bootConfig.playerName,
+    runtimeSnapshot.world.player?.name,
+    runtimeSnapshot.world.ready,
+    runtimeSnapshot.world.slice.captured,
+    runtimeSnapshot.world.slice.completed,
+    runtimeSnapshot.world.slice.objective,
+    runtimeSnapshot.world.slice.round,
+    runtimeSnapshot.world.slice.score,
+    runtimeSnapshot.world.slice.total,
+  ]);
+
+  useEffect(() => {
+    if (!currentSession || currentSession.status !== "completed") {
+      return;
+    }
+
+    if (lastArchivedSessionId.current === currentSession.id) {
+      return;
+    }
+
+    lastArchivedSessionId.current = currentSession.id;
+
+    updateSlot(currentSession.slotId, (slot) => {
+      if (slot.recentSessions.some((session) => session.id === currentSession.id)) {
+        return slot;
+      }
+
+      const now = new Date().toISOString();
+      return {
+        ...slot,
+        progression: awardSweepProgression(slot.progression, now),
+        recentSessions: [currentSession, ...slot.recentSessions].slice(0, 6),
+        updatedAt: now,
+      };
+    });
+  }, [currentSession]);
 
   useEffect(() => {
     void dispatchUiIntent({
@@ -197,6 +345,28 @@ export function GameShell() {
     };
   }, []);
 
+  function commitCollection(
+    updater: (current: RuntimeSaveCollection) => RuntimeSaveCollection,
+  ) {
+    setSaveCollection((current) => {
+      const next = updater(current);
+      saveStoredSaveCollection(next);
+      return next;
+    });
+  }
+
+  function updateSlot(
+    slotId: SaveSlotId,
+    updater: (slot: RuntimeSaveSlot) => RuntimeSaveSlot,
+  ) {
+    commitCollection((current) => {
+      const slot =
+        current.slots.find((candidate) => candidate.id === slotId) ??
+        defaultSaveSlot(slotId);
+      return replaceSlot(current, sanitizeSaveSlot(updater(slot), slotId, slot.label));
+    });
+  }
+
   function setLauncherConfig<K extends keyof RuntimeBootConfig>(
     key: K,
     value: RuntimeBootConfig[K],
@@ -226,52 +396,87 @@ export function GameShell() {
     });
   }
 
-  async function handleCopyProfile() {
-    const raw = exportRuntimeProfile(profile);
-    setProfileDraft(raw);
+  function handleSelectSlot(slotId: SaveSlotId) {
+    const nextSlot =
+      saveCollection.slots.find((slot) => slot.id === slotId) ?? defaultSaveSlot(slotId);
+
+    commitCollection((current) => ({
+      ...current,
+      activeSlotId: slotId,
+    }));
+
+    setSaveMessage(`Active slot switched to ${nextSlot.label}.`);
+    setSaveDraft("");
+    void dispatchUiIntent({
+      type: "runtime.boot-config.patch",
+      patch: profileToBootConfig(nextSlot),
+    });
+  }
+
+  function handleRenameSlot(label: string) {
+    updateSlot(activeSlot.id, (slot) => ({
+      ...slot,
+      label: sanitizeSlotLabel(label),
+      updatedAt: new Date().toISOString(),
+    }));
+  }
+
+  function handleResetActiveSlot() {
+    const reset = {
+      ...defaultSaveSlot(activeSlot.id, activeSlot.label),
+      label: activeSlot.label,
+      updatedAt: new Date().toISOString(),
+    };
+
+    updateSlot(activeSlot.id, () => reset);
+    setCurrentSession(null);
+    setSaveDraft("");
+    setSaveMessage(`Reset ${activeSlot.label} to template defaults.`);
+    void dispatchUiIntent({
+      type: "runtime.boot-config.patch",
+      patch: profileToBootConfig(reset),
+    });
+  }
+
+  function handleResetAllSaves() {
+    const next = defaultSaveCollection();
+    clearStoredSaveCollection();
+    saveStoredSaveCollection(next);
+    setSaveCollection(next);
+    setCurrentSession(null);
+    setSaveDraft("");
+    setSaveMessage("Reset all save slots and progression data.");
+    void dispatchUiIntent({
+      type: "runtime.boot-config.patch",
+      patch: profileToBootConfig(getActiveSlot(next)),
+    });
+  }
+
+  async function handleCopySaveMatrix() {
+    const raw = exportSaveCollection(saveCollection);
+    setSaveDraft(raw);
 
     try {
       await navigator.clipboard.writeText(raw);
-      setProfileMessage("Profile JSON copied to clipboard.");
+      setSaveMessage("Save matrix JSON copied to clipboard.");
     } catch {
-      setProfileMessage("Profile JSON prepared below. Copy manually if needed.");
+      setSaveMessage("Save matrix JSON prepared below. Copy manually if needed.");
     }
   }
 
-  function handleImportProfile() {
+  function handleImportSaveMatrix() {
     try {
-      const imported = importRuntimeProfile(profileDraft);
-      const next = sanitizeRuntimeProfile({
-        ...imported,
-        updatedAt: new Date().toISOString(),
-      });
-
-      setProfile(next);
-      saveStoredProfile(next);
-      setProfileMessage("Profile imported from JSON.");
+      const next = importSaveCollection(saveDraft);
+      saveStoredSaveCollection(next);
+      setSaveCollection(next);
+      setSaveMessage("Save matrix imported from JSON.");
       void dispatchUiIntent({
         type: "runtime.boot-config.patch",
-        patch: profileToBootConfig(next),
+        patch: profileToBootConfig(getActiveSlot(next)),
       });
     } catch {
-      setProfileMessage("Profile import failed. Check the JSON payload.");
+      setSaveMessage("Save matrix import failed. Check the JSON payload.");
     }
-  }
-
-  function handleResetProfile() {
-    const next = sanitizeRuntimeProfile({
-      updatedAt: new Date().toISOString(),
-    });
-
-    setProfile(next);
-    clearStoredProfile();
-    saveStoredProfile(next);
-    setProfileDraft("");
-    setProfileMessage("Profile reset to template defaults.");
-    void dispatchUiIntent({
-      type: "runtime.boot-config.patch",
-      patch: profileToBootConfig(next),
-    });
   }
 
   return (
@@ -287,6 +492,7 @@ export function GameShell() {
         </div>
 
         <section className="panel">
+          <div className="eyebrow">Launcher</div>
           <label className="label">
             Player Name
             <input
@@ -325,7 +531,8 @@ export function GameShell() {
             Runtime active: {runtimeSnapshot.runtimeActive ? "yes" : "no"}
           </div>
           <div className="muted">
-            Player: {runtimeSnapshot.world.player?.name ?? runtimeSnapshot.bootConfig.playerName}
+            Player:{" "}
+            {runtimeSnapshot.world.player?.name ?? runtimeSnapshot.bootConfig.playerName}
           </div>
           <div className="muted">
             Position:{" "}
@@ -342,77 +549,137 @@ export function GameShell() {
         </section>
 
         <section className="panel">
-          <div className="eyebrow">Starter Slice</div>
+          <div className="eyebrow">Match Contract</div>
           <div className="stat-grid">
             <div className="stat-card">
+              <span className="stat-label">Status</span>
+              <strong>{currentSession?.status ?? "staging"}</strong>
+            </div>
+            <div className="stat-card">
+              <span className="stat-label">Round</span>
+              <strong>{currentSession?.round ?? runtimeSnapshot.world.slice.round}</strong>
+            </div>
+            <div className="stat-card">
               <span className="stat-label">Score</span>
-              <strong>{runtimeSnapshot.world.slice.score}</strong>
-            </div>
-            <div className="stat-card">
-              <span className="stat-label">Loop</span>
-              <strong>{runtimeSnapshot.world.slice.round}</strong>
-            </div>
-            <div className="stat-card">
-              <span className="stat-label">Uplinks</span>
-              <strong>
-                {runtimeSnapshot.world.slice.captured}/{runtimeSnapshot.world.slice.total}
-              </strong>
+              <strong>{currentSession?.score ?? runtimeSnapshot.world.slice.score}</strong>
             </div>
           </div>
+          <div className="muted">Session id: {currentSession?.id ?? "awaiting runtime"}</div>
           <div className="muted">
-            {runtimeSnapshot.world.slice.completed
-              ? "Sweep complete. Resetting loop."
-              : "Capture each uplink pad to drive shell-visible state."}
+            Window: {formatTimestamp(currentSession?.startedAt)} to{" "}
+            {formatTimestamp(currentSession?.endedAt)}
+          </div>
+          <div className="muted">
+            Progress: {runtimeSnapshot.world.slice.captured}/{runtimeSnapshot.world.slice.total}{" "}
+            uplinks
           </div>
         </section>
 
         <section className="panel">
-          <div className="eyebrow">Profile Save</div>
+          <div className="eyebrow">Progression Meta</div>
           <div className="stat-grid">
             <div className="stat-card">
-              <span className="stat-label">Runs</span>
-              <strong>{profile.runsLaunched}</strong>
+              <span className="stat-label">Level</span>
+              <strong>{activeSlot.progression.level}</strong>
             </div>
             <div className="stat-card">
-              <span className="stat-label">Best Score</span>
-              <strong>{profile.bestScore}</strong>
+              <span className="stat-label">XP</span>
+              <strong>{activeSlot.progression.xp}</strong>
             </div>
             <div className="stat-card">
-              <span className="stat-label">Best Loop</span>
-              <strong>{profile.bestRound}</strong>
+              <span className="stat-label">Sweeps</span>
+              <strong>{activeSlot.progression.totalSweeps}</strong>
             </div>
           </div>
-          <div className="muted">
-            Last run: {profile.lastScore} score, loop {profile.lastRound}, uplinks{" "}
-            {profile.lastCaptured}
+          <div className="muted">Total launches: {activeSlot.progression.totalRuns}</div>
+          <div className="muted">Best score: {activeSlot.profile.bestScore}</div>
+          <div className="badge-row">
+            {activeSlot.progression.unlockedBadges.length > 0 ? (
+              activeSlot.progression.unlockedBadges.map((badge) => (
+                <span className="badge-pill" key={badge}>
+                  {formatBadgeLabel(badge)}
+                </span>
+              ))
+            ) : (
+              <span className="muted">No milestones unlocked yet.</span>
+            )}
           </div>
-          <div className="muted">
-            {profile.updatedAt
-              ? `Updated ${new Date(profile.updatedAt).toLocaleString()}`
-              : "No persisted profile yet."}
+        </section>
+
+        <section className="panel">
+          <div className="eyebrow">Save Slots</div>
+          <div className="slot-grid">
+            {saveCollection.slots.map((slot) => (
+              <button
+                key={slot.id}
+                type="button"
+                className={`slot-card${slot.id === activeSlot.id ? " active" : ""}`}
+                onClick={() => handleSelectSlot(slot.id)}
+              >
+                <span className="slot-title">{slot.label}</span>
+                <span className="slot-meta">Best {slot.profile.bestScore}</span>
+                <span className="slot-meta">Loop {slot.profile.bestRound}</span>
+              </button>
+            ))}
           </div>
+
+          <label className="label">
+            Active Slot Label
+            <input
+              type="text"
+              value={activeSlot.label}
+              onChange={(event) => handleRenameSlot(event.target.value)}
+              maxLength={18}
+            />
+          </label>
+
+          <div className="muted">
+            Last run: {activeSlot.profile.lastScore} score, loop {activeSlot.profile.lastRound},
+            uplinks {activeSlot.profile.lastCaptured}
+          </div>
+
+          <div className="session-list">
+            {activeSlot.recentSessions.length > 0 ? (
+              activeSlot.recentSessions.map((session) => (
+                <div className="session-row" key={session.id}>
+                  <span>{session.id}</span>
+                  <span>{session.score} pts</span>
+                  <span>R{session.round}</span>
+                </div>
+              ))
+            ) : (
+              <div className="muted">No archived sessions yet.</div>
+            )}
+          </div>
+        </section>
+
+        <section className="panel">
+          <div className="eyebrow">Save Matrix</div>
           <div className="action-row">
-            <button className="button secondary" onClick={() => void handleCopyProfile()}>
-              Copy Save JSON
+            <button className="button secondary" onClick={() => void handleCopySaveMatrix()}>
+              Copy Save Matrix
             </button>
-            <button className="button secondary" onClick={handleImportProfile}>
-              Load Save JSON
+            <button className="button secondary" onClick={handleImportSaveMatrix}>
+              Load Save Matrix
             </button>
-            <button className="button secondary" onClick={handleResetProfile}>
-              Reset Save
+            <button className="button secondary" onClick={handleResetActiveSlot}>
+              Reset Active Slot
+            </button>
+            <button className="button secondary" onClick={handleResetAllSaves}>
+              Reset All Saves
             </button>
           </div>
           <label className="label">
-            Profile JSON
+            Save JSON
             <textarea
               className="profile-textarea"
-              value={profileDraft}
-              onChange={(event) => setProfileDraft(event.target.value)}
-              placeholder="Exported profile JSON appears here. Paste a profile payload to import."
+              value={saveDraft}
+              onChange={(event) => setSaveDraft(event.target.value)}
+              placeholder="Exported save matrix JSON appears here. Paste a payload to import."
               rows={8}
             />
           </label>
-          {profileMessage ? <div className="muted">{profileMessage}</div> : null}
+          {saveMessage ? <div className="muted">{saveMessage}</div> : null}
         </section>
 
         <section className="panel">
@@ -440,6 +707,14 @@ export function GameShell() {
                 {runtimeSnapshot.world.slice.captured}/{runtimeSnapshot.world.slice.total} uplinks
               </div>
               <div className="muted">{runtimeSnapshot.world.slice.status}</div>
+            </div>
+
+            <div className="hud-card objective-card">
+              <div className="eyebrow">Active Slot</div>
+              <div className="objective-title">{activeSlot.label}</div>
+              <div className="muted">
+                L{activeSlot.progression.level} · {activeSlot.progression.xp} XP
+              </div>
             </div>
 
             {runtimeSnapshot.bootConfig.touchControls ? (
@@ -504,17 +779,19 @@ export function GameShell() {
   );
 }
 
-function readStoredBootConfig(profile: RuntimeProfile): Partial<RuntimeBootConfig> | undefined {
+function readStoredBootConfig(
+  collection: RuntimeSaveCollection,
+): Partial<RuntimeBootConfig> | undefined {
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw = window.localStorage.getItem(LAUNCHER_STORAGE_KEY);
 
     if (!raw) {
-      return profileToBootConfig(profile);
+      return profileToBootConfig(getActiveSlot(collection));
     }
 
     return sanitizeRuntimeBootConfig(JSON.parse(raw));
   } catch {
-    return profileToBootConfig(profile);
+    return profileToBootConfig(getActiveSlot(collection));
   }
 }
 
@@ -545,17 +822,113 @@ function renderBootRecord(record: RuntimeBootRecord) {
   return `${record.phase} · ${record.message}`;
 }
 
-function profilesEqual(left: RuntimeProfile, right: RuntimeProfile) {
-  return (
-    left.version === right.version &&
-    left.preferredPlayerName === right.preferredPlayerName &&
-    left.preferredTouchControls === right.preferredTouchControls &&
-    left.runsLaunched === right.runsLaunched &&
-    left.bestScore === right.bestScore &&
-    left.bestRound === right.bestRound &&
-    left.lastScore === right.lastScore &&
-    left.lastRound === right.lastRound &&
-    left.lastCaptured === right.lastCaptured &&
-    left.updatedAt === right.updatedAt
+function buildSessionId(slotId: SaveSlotId, runsLaunched: number, round: number) {
+  const runNumber = Math.max(1, runsLaunched);
+  return `${slotId}-run-${runNumber}-round-${round}`;
+}
+
+function awardLaunchProgression(
+  progression: RuntimeProgression,
+  updatedAt: string,
+): RuntimeProgression {
+  let next = grantXp(
+    {
+      ...progression,
+      totalRuns: progression.totalRuns + 1,
+      updatedAt,
+    },
+    25,
   );
+
+  next = unlockBadge(next, "first-launch", 25);
+  next.updatedAt = updatedAt;
+  return next;
+}
+
+function awardSweepProgression(
+  progression: RuntimeProgression,
+  updatedAt: string,
+): RuntimeProgression {
+  let next = grantXp(
+    {
+      ...progression,
+      totalSweeps: progression.totalSweeps + 1,
+      updatedAt,
+    },
+    100,
+  );
+
+  next = unlockBadge(next, "first-sweep", 40);
+  next.updatedAt = updatedAt;
+  return next;
+}
+
+function awardProgressionMilestones(
+  progression: RuntimeProgression,
+  bestScore: number,
+  bestRound: number,
+  updatedAt: string,
+): RuntimeProgression {
+  let next = sanitizeProgression({
+    ...progression,
+    updatedAt,
+  });
+
+  if (bestScore >= 300) {
+    next = unlockBadge(next, "score-300", 60);
+  }
+
+  if (bestRound >= 3) {
+    next = unlockBadge(next, "loop-3", 80);
+  }
+
+  next.updatedAt = updatedAt;
+  return next;
+}
+
+function grantXp(progression: RuntimeProgression, xp: number): RuntimeProgression {
+  return sanitizeProgression({
+    ...progression,
+    xp: progression.xp + xp,
+    updatedAt: progression.updatedAt,
+  });
+}
+
+function unlockBadge(
+  progression: RuntimeProgression,
+  badge: ProgressionBadge,
+  xpReward: number,
+): RuntimeProgression {
+  if (progression.unlockedBadges.includes(badge)) {
+    return progression;
+  }
+
+  return grantXp(
+    {
+      ...progression,
+      unlockedBadges: [...progression.unlockedBadges, badge],
+    },
+    xpReward,
+  );
+}
+
+function formatTimestamp(value: string | null | undefined) {
+  if (!value) {
+    return "in-progress";
+  }
+
+  return new Date(value).toLocaleTimeString();
+}
+
+function formatBadgeLabel(badge: ProgressionBadge) {
+  switch (badge) {
+    case "first-launch":
+      return "First Launch";
+    case "first-sweep":
+      return "First Sweep";
+    case "score-300":
+      return "Score 300";
+    case "loop-3":
+      return "Loop 3";
+  }
 }

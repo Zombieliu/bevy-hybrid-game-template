@@ -44,6 +44,7 @@ Then manually review the diff before your first commit.
 - Rewrite the first section of `README.md` for your game or studio
 - Reset `CHANGELOG.md` if you do not want to inherit template release history
 - Confirm `VERSION` matches your intended starting tag
+- Decide whether to keep the default save-slot/session/progression shell contract or replace it with your own product layer
 
 ## 4. Verify Both Targets
 

@@ -48,7 +48,7 @@ and packaging checklist in [`TEMPLATE_SETUP.md`](./TEMPLATE_SETUP.md).
 - `pnpm rename:template -- ...` rewrites the default template identity across core files
 - `src/runtime_app.rs` keeps native and web bootstrap logic on one contract
 - `src/starter_scene.rs` gives every new project a visible first slice with objectives, score, and shell-visible runtime state
-- the web shell now includes a local-first profile/save layer with JSON export/import
+- the web shell now includes a local-first save matrix with slots, match/session state, progression meta, and JSON export/import
 
 ## Why This Template
 
@@ -71,7 +71,7 @@ Bevy runtime`.
 - shared Rust bootstrap for both native and web entrypoints
 - a visible starter scene that proves the runtime is live on first launch
 - a small gameplay loop with uplink capture progress, score, and repeating rounds
-- local profile persistence for preferences, last run, and best run data
+- local save-slot persistence for preferences, last run, best run, progression meta, and recent sessions
 - minimal shell-to-runtime bridge:
   - boot status sink
   - runtime event sink
@@ -149,18 +149,20 @@ local port, launches Chromium, clicks `Launch Runtime`, waits for
 `scene-ready`, sends virtual input, and saves smoke artifacts under
 `output/playwright/smoke-web`.
 
-## Local Profile Layer
+## Shell Product Layer
 
-The web shell now ships with a local-first profile/save contract:
+The web shell now ships with a local-first product shell contract:
 
-- preferred player name and touch-control setting
-- runs launched
-- best score and best loop
-- last run summary
-- JSON export/import for quick handoff between local environments
+- three save slots
+- slot-scoped preferences
+- match/session state derived from the runtime slice
+- progression meta with XP, level, sweeps, and unlock badges
+- recent session history
+- JSON export/import for the whole save matrix
 
-This is intentionally shell-owned and browser-local. If you later add auth or
-cloud save, you can swap the storage backend without rewriting the Bevy runtime.
+This is intentionally shell-owned and browser-local. If you later add auth,
+cloud save, or backend match state, you can swap the storage backend without
+rewriting the Bevy runtime.
 
 ## Shared Runtime Bootstrap
 
@@ -180,7 +182,7 @@ The default visible slice now lives in [`src/starter_scene.rs`](./src/starter_sc
 
 - it creates the default camera
 - it spawns a simple arena/backdrop and a visible player marker
-- it includes a tiny looping objective layer so the shell can render score, progress, and status without game-specific backend code
+- it includes a tiny looping objective layer so the shell can render score, progress, status, and session summaries without game-specific backend code
 - it gives you a clean place to swap in your own board, map, or combat slice later
 
 If you start a real project, replace the starter scene plugin first, not the web bridge.

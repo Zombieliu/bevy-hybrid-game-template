@@ -154,6 +154,74 @@ textarea {
   gap: 10px;
 }
 
+.slot-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.slot-card {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  text-align: left;
+}
+
+.slot-card.active {
+  border-color: rgba(191, 227, 143, 0.68);
+  background: rgba(110, 211, 183, 0.12);
+}
+
+.slot-title {
+  font-weight: 700;
+}
+
+.slot-meta {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.badge-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.badge-pill {
+  border: 1px solid rgba(191, 227, 143, 0.4);
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: rgba(191, 227, 143, 0.12);
+  color: var(--accent-strong);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+
+.session-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.session-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) auto auto;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  font-size: 13px;
+  color: var(--muted);
+}
+
 .canvas-area {
   position: relative;
   min-height: 100vh;
@@ -252,6 +320,10 @@ textarea {
   }
 
   .stat-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .slot-grid {
     grid-template-columns: 1fr;
   }
 }
