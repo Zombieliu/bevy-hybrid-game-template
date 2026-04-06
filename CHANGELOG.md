@@ -11,6 +11,7 @@ semantic-style version tags such as `v0.1.0`.
 
 - Starter slice progression data now flows into the web shell with objective, score, loop, and status fields.
 - Local save slots with progression meta, recent session history, and JSON export/import for the shell-owned save matrix.
+- Product-facing packaging docs and visual capability map for public template distribution.
 
 ## [0.1.0] - 2026-04-06
 

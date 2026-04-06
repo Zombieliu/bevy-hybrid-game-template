@@ -65,3 +65,11 @@ After pushing to your personal GitHub repo:
 3. Enable `Template repository`
 
 That gives you the standard GitHub "Use this template" flow for future projects.
+
+## 6. Productize The Public Repo
+
+Before sharing the repo publicly, update:
+
+- `README.md` hero copy and preview assets
+- `docs/COMMERCIAL_TEMPLATE_GUIDE.md` if your downstream product path differs
+- `docs/capability-map.svg` if you change the template boundaries materially

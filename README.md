@@ -13,9 +13,15 @@
   ·
   <a href="./TEMPLATE_SETUP.md">Template Setup</a>
   ·
+  <a href="./docs/COMMERCIAL_TEMPLATE_GUIDE.md">Commercial Guide</a>
+  ·
   <a href="./apps/web">Web Shell</a>
   ·
   <a href="./src/runtime_app.rs">Shared Bootstrap</a>
+</p>
+
+<p align="center">
+  <img src="./docs/smoke-preview.png" alt="Bevy Hybrid Game Template live shell preview" width="100%" />
 </p>
 
 Reusable game starter for teams that want one Rust gameplay/runtime crate shared
@@ -38,6 +44,20 @@ Pages, Netlify, Cloudflare Pages, or any other static host after `pnpm build`.
 
 If you plan to publish this repo as your own GitHub template, follow the rename
 and packaging checklist in [`TEMPLATE_SETUP.md`](./TEMPLATE_SETUP.md).
+
+## Product Read
+
+This repo is now packaged as a starter kit, not just a runtime spike. It ships
+three layers:
+
+- `runtime core`
+  shared Bevy bootstrap, wasm bridge, scene, input, and native/web runtime path
+- `product shell`
+  Next.js launcher, HUD, save slots, match/session panel, progression meta
+- `shipping path`
+  static export, native packaging scaffolding, and smoke-tested browser CI
+
+See the visual map in [`docs/capability-map.svg`](./docs/capability-map.svg).
 
 ## Snapshot
 
@@ -149,6 +169,17 @@ local port, launches Chromium, clicks `Launch Runtime`, waits for
 `scene-ready`, sends virtual input, and saves smoke artifacts under
 `output/playwright/smoke-web`.
 
+## Who This Fits
+
+Use this template when you want to ship a game with:
+
+- Bevy as the simulation/runtime layer
+- React/Next.js as the product surface
+- a web/PWA-first shell that still preserves native builds
+- a shell-owned data model for saves, sessions, and progression
+
+Skip it if your project only needs a pure Bevy app with no product shell.
+
 ## Shell Product Layer
 
 The web shell now ships with a local-first product shell contract:
@@ -163,6 +194,13 @@ The web shell now ships with a local-first product shell contract:
 This is intentionally shell-owned and browser-local. If you later add auth,
 cloud save, or backend match state, you can swap the storage backend without
 rewriting the Bevy runtime.
+
+## Replaceable Boundaries
+
+- Replace [`src/starter_scene.rs`](./src/starter_scene.rs) when your real gameplay slice is ready.
+- Replace [`apps/web/components/game-shell.tsx`](./apps/web/components/game-shell.tsx) when your product UI and economy/session surfaces are ready.
+- Replace local storage contracts when you are ready for auth or cloud save.
+- Keep [`src/runtime_app.rs`](./src/runtime_app.rs) and the shell/runtime bridge stable as long as possible.
 
 ## Shared Runtime Bootstrap
 
@@ -253,6 +291,7 @@ Use this template when your game needs:
 - [`CHANGELOG.md`](./CHANGELOG.md) records downstream-relevant template changes
 - [`CONTRIBUTING.md`](./CONTRIBUTING.md) defines the required verification loop
 - [`SECURITY.md`](./SECURITY.md) defines reporting expectations for template issues
+- [`docs/COMMERCIAL_TEMPLATE_GUIDE.md`](./docs/COMMERCIAL_TEMPLATE_GUIDE.md) explains how to turn the template into a public or paid starter kit
 
 ## Updating the icons
  1. Replace `build/macos/icon_1024x1024.png` with a `1024` times `1024` pixel png icon and run `create_icns.sh` or `create_icns_linux.sh` if you use linux (make sure to run the script inside the `build/macos` directory) - _Note: `create_icns.sh` requires a mac, and `create_icns_linux.sh` requires imagemagick and png2icns_
