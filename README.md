@@ -1,4 +1,22 @@
+<p align="center">
+  <img src="./docs/banner.svg" alt="Bevy Hybrid Game Template banner" width="100%" />
+</p>
+
 # Bevy Hybrid Game Template
+
+<p align="center">
+  <strong>One Rust runtime crate. Native Bevy + Next.js shell + Bevy WASM.</strong>
+</p>
+
+<p align="center">
+  <a href="https://github.com/Zombieliu/bevy-hybrid-game-template">GitHub Repo</a>
+  ·
+  <a href="./TEMPLATE_SETUP.md">Template Setup</a>
+  ·
+  <a href="./apps/web">Web Shell</a>
+  ·
+  <a href="./src/runtime_app.rs">Shared Bootstrap</a>
+</p>
 
 Reusable game starter for teams that want one Rust gameplay/runtime crate shared
 across:
@@ -20,6 +38,14 @@ Pages, Netlify, Cloudflare Pages, or any other static host after `pnpm build`.
 
 If you plan to publish this repo as your own GitHub template, follow the rename
 and packaging checklist in [`TEMPLATE_SETUP.md`](./TEMPLATE_SETUP.md).
+
+## Snapshot
+
+- `cargo run` starts the native runtime
+- `pnpm dev` starts the Next.js shell and embedded Bevy WASM runtime
+- `pnpm build` exports a static web artifact from `apps/web/out`
+- `src/runtime_app.rs` keeps native and web bootstrap logic on one contract
+- `src/starter_scene.rs` gives every new project a visible, movable first slice
 
 ## Why This Template
 
