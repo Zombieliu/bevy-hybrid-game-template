@@ -9,7 +9,7 @@ semantic-style version tags such as `v0.1.0`.
 
 ### Added
 
-- Placeholder for the next published template changes.
+- Starter slice progression data now flows into the web shell with objective, score, loop, and status fields.
 
 ## [0.1.0] - 2026-04-06
 

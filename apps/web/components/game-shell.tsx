@@ -198,6 +198,37 @@ export function GameShell() {
               ? `${runtimeSnapshot.world.player.x.toFixed(1)}, ${runtimeSnapshot.world.player.y.toFixed(1)}`
               : "waiting"}
           </div>
+          <div className="muted">
+            Objective: {runtimeSnapshot.world.slice.objective}
+          </div>
+          <div className="muted">
+            Slice status: {runtimeSnapshot.world.slice.status}
+          </div>
+        </section>
+
+        <section className="panel">
+          <div className="eyebrow">Starter Slice</div>
+          <div className="stat-grid">
+            <div className="stat-card">
+              <span className="stat-label">Score</span>
+              <strong>{runtimeSnapshot.world.slice.score}</strong>
+            </div>
+            <div className="stat-card">
+              <span className="stat-label">Loop</span>
+              <strong>{runtimeSnapshot.world.slice.round}</strong>
+            </div>
+            <div className="stat-card">
+              <span className="stat-label">Uplinks</span>
+              <strong>
+                {runtimeSnapshot.world.slice.captured}/{runtimeSnapshot.world.slice.total}
+              </strong>
+            </div>
+          </div>
+          <div className="muted">
+            {runtimeSnapshot.world.slice.completed
+              ? "Sweep complete. Resetting loop."
+              : "Capture each uplink pad to drive shell-visible state."}
+          </div>
         </section>
 
         <section className="panel">
@@ -217,6 +248,14 @@ export function GameShell() {
             <div className="hud-card">
               <div className="eyebrow">Projection</div>
               <div>{runtimeSnapshot.world.ready ? "ready" : "booting"}</div>
+            </div>
+
+            <div className="hud-card objective-card">
+              <div className="eyebrow">Live Slice</div>
+              <div className="objective-title">
+                {runtimeSnapshot.world.slice.captured}/{runtimeSnapshot.world.slice.total} uplinks
+              </div>
+              <div className="muted">{runtimeSnapshot.world.slice.status}</div>
             </div>
 
             {runtimeSnapshot.bootConfig.touchControls ? (

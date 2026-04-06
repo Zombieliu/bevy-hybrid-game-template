@@ -1,5 +1,6 @@
 use crate::RuntimeConfig;
 use crate::player::Player;
+use crate::starter_scene::StarterSliceProjection;
 use bevy::prelude::*;
 
 #[cfg(target_arch = "wasm32")]
@@ -162,6 +163,7 @@ pub fn read_runtime_virtual_input() -> Option<Vec2> {
 fn publish_runtime_ready(
     mut state: ResMut<RuntimeBridgeState>,
     config: Res<RuntimeConfig>,
+    slice: Option<Res<StarterSliceProjection>>,
     player: Query<&Transform, With<Player>>,
 ) {
     if state.ready_emitted {
@@ -175,7 +177,7 @@ fn publish_runtime_ready(
         );
         publish_runtime_event(
             "runtime.ready",
-            &projection_object(&config, transform.translation),
+            &projection_object(&config, transform.translation, slice.as_deref()),
         );
         state.ready_emitted = true;
     }
@@ -183,23 +185,41 @@ fn publish_runtime_ready(
 
 fn publish_runtime_projection(
     config: Res<RuntimeConfig>,
-    player: Query<&Transform, (With<Player>, Changed<Transform>)>,
+    slice: Option<Res<StarterSliceProjection>>,
+    player: Query<Ref<Transform>, With<Player>>,
 ) {
-    if let Ok(transform) = player.single() {
+    let slice_changed = slice.as_ref().is_some_and(|value| value.is_changed());
+
+    if let Ok(transform) = player.single()
+        && (transform.is_changed() || slice_changed)
+    {
         publish_runtime_event(
             "runtime.projection.changed",
-            &projection_object(&config, transform.translation),
+            &projection_object(&config, transform.translation, slice.as_deref()),
         );
     }
 }
 
-fn projection_object(config: &RuntimeConfig, translation: Vec3) -> ProjectionPayload {
+fn projection_object(
+    config: &RuntimeConfig,
+    translation: Vec3,
+    slice: Option<&StarterSliceProjection>,
+) -> ProjectionPayload {
+    let slice = slice.cloned().unwrap_or_default();
+
     ProjectionPayload {
         ready: true,
         player_name: config.player_name.clone(),
         x: translation.x,
         y: translation.y,
         touch_controls: config.touch_controls,
+        objective: slice.objective,
+        status: slice.status,
+        score: slice.score,
+        captured: slice.captured,
+        total: slice.total,
+        round: slice.round,
+        completed: slice.completed,
     }
 }
 
@@ -210,6 +230,13 @@ struct ProjectionPayload {
     x: f32,
     y: f32,
     touch_controls: bool,
+    objective: String,
+    status: String,
+    score: u32,
+    captured: usize,
+    total: usize,
+    round: u32,
+    completed: bool,
 }
 
 fn publish_status(phase: &str, message: &str) {
@@ -234,6 +261,7 @@ fn publish_runtime_event(event_type: &str, projection: &ProjectionPayload) {
             let payload = Object::new();
             let projection_object = Object::new();
             let player = Object::new();
+            let slice = Object::new();
 
             let _ = Reflect::set(&payload, &"type".into(), &event_type.into());
             let _ = Reflect::set(&payload, &"origin".into(), &"runtime".into());
@@ -256,6 +284,26 @@ fn publish_runtime_event(event_type: &str, projection: &ProjectionPayload) {
             let _ = Reflect::set(&player, &"x".into(), &projection.x.into());
             let _ = Reflect::set(&player, &"y".into(), &projection.y.into());
             let _ = Reflect::set(&projection_object, &"player".into(), &player);
+            let _ = Reflect::set(
+                &slice,
+                &"objective".into(),
+                &projection.objective.clone().into(),
+            );
+            let _ = Reflect::set(
+                &slice,
+                &"status".into(),
+                &projection.status.clone().into(),
+            );
+            let _ = Reflect::set(&slice, &"score".into(), &projection.score.into());
+            let _ = Reflect::set(&slice, &"captured".into(), &projection.captured.into());
+            let _ = Reflect::set(&slice, &"total".into(), &projection.total.into());
+            let _ = Reflect::set(&slice, &"round".into(), &projection.round.into());
+            let _ = Reflect::set(
+                &slice,
+                &"completed".into(),
+                &projection.completed.into(),
+            );
+            let _ = Reflect::set(&projection_object, &"slice".into(), &slice);
             let _ = Reflect::set(&payload, &"projection".into(), &projection_object);
             let _ = callback.call1(&JsValue::NULL, &payload);
         }

@@ -47,7 +47,7 @@ and packaging checklist in [`TEMPLATE_SETUP.md`](./TEMPLATE_SETUP.md).
 - `pnpm smoke:web` boots the shell, launches the runtime, and validates scene/input flow
 - `pnpm rename:template -- ...` rewrites the default template identity across core files
 - `src/runtime_app.rs` keeps native and web bootstrap logic on one contract
-- `src/starter_scene.rs` gives every new project a visible, movable first slice
+- `src/starter_scene.rs` gives every new project a visible first slice with objectives, score, and shell-visible runtime state
 
 ## Why This Template
 
@@ -69,11 +69,13 @@ Bevy runtime`.
 - `Next.js` app shell in [`apps/web`](./apps/web)
 - shared Rust bootstrap for both native and web entrypoints
 - a visible starter scene that proves the runtime is live on first launch
+- a small gameplay loop with uplink capture progress, score, and repeating rounds
 - minimal shell-to-runtime bridge:
   - boot status sink
   - runtime event sink
   - runtime session config
   - virtual input forwarding
+  - runtime projection data for shell HUDs
 - mobile/release packaging scaffolding from the original Bevy template
 
 ## Quick Start
@@ -163,6 +165,7 @@ The default visible slice now lives in [`src/starter_scene.rs`](./src/starter_sc
 
 - it creates the default camera
 - it spawns a simple arena/backdrop and a visible player marker
+- it includes a tiny looping objective layer so the shell can render score, progress, and status without game-specific backend code
 - it gives you a clean place to swap in your own board, map, or combat slice later
 
 If you start a real project, replace the starter scene plugin first, not the web bridge.

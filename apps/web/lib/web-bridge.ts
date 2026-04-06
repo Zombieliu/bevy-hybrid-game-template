@@ -204,6 +204,20 @@ function normalizeProjection(projection: RuntimeProjection): RuntimeProjection {
           y: Number(projection.player.y ?? 0),
         }
       : null,
+    slice: {
+      objective:
+        projection.slice?.objective || DEFAULT_RUNTIME_PROJECTION.slice.objective,
+      status: projection.slice?.status || DEFAULT_RUNTIME_PROJECTION.slice.status,
+      score: Number(projection.slice?.score ?? 0),
+      captured: Number(projection.slice?.captured ?? 0),
+      total: Number(
+        projection.slice?.total ?? DEFAULT_RUNTIME_PROJECTION.slice.total,
+      ),
+      round: Number(
+        projection.slice?.round ?? DEFAULT_RUNTIME_PROJECTION.slice.round,
+      ),
+      completed: Boolean(projection.slice?.completed),
+    },
   };
 }
 

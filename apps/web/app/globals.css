@@ -107,6 +107,29 @@ input {
   cursor: pointer;
 }
 
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.stat-card {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.stat-label {
+  color: var(--muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
 .button.secondary {
   background: rgba(255, 255, 255, 0.07);
   color: var(--text);
@@ -169,6 +192,15 @@ input {
   color: var(--text);
 }
 
+.objective-card {
+  max-width: 280px;
+}
+
+.objective-title {
+  font-size: 18px;
+  font-weight: 700;
+}
+
 .touch-button.attack {
   grid-column: 3;
   grid-row: 1 / span 2;
@@ -199,5 +231,9 @@ input {
     right: 12px;
     bottom: 12px;
     flex-direction: column;
+  }
+
+  .stat-grid {
+    grid-template-columns: 1fr;
   }
 }

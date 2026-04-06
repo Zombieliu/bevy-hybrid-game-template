@@ -37,6 +37,15 @@ export type RuntimeProjection = {
     x: number;
     y: number;
   } | null;
+  slice: {
+    objective: string;
+    status: string;
+    score: number;
+    captured: number;
+    total: number;
+    round: number;
+    completed: boolean;
+  };
 };
 
 export type RuntimeSnapshot = {
@@ -105,4 +114,13 @@ export const DEFAULT_RUNTIME_PROJECTION: RuntimeProjection = {
   ready: false,
   touchControls: true,
   player: null,
+  slice: {
+    objective: "Secure each uplink pad once per sweep.",
+    status: "Waiting for runtime handoff.",
+    score: 0,
+    captured: 0,
+    total: 4,
+    round: 1,
+    completed: false,
+  },
 };
