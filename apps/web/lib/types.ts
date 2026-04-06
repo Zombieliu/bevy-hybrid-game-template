@@ -59,6 +59,19 @@ export type RuntimeSnapshot = {
   runtimeActive: boolean;
 };
 
+export type RuntimeProfile = {
+  version: 1;
+  preferredPlayerName: string;
+  preferredTouchControls: boolean;
+  runsLaunched: number;
+  bestScore: number;
+  bestRound: number;
+  lastScore: number;
+  lastRound: number;
+  lastCaptured: number;
+  updatedAt: string | null;
+};
+
 export type UiIntent =
   | {
       type: "runtime.boot";
@@ -123,4 +136,17 @@ export const DEFAULT_RUNTIME_PROJECTION: RuntimeProjection = {
     round: 1,
     completed: false,
   },
+};
+
+export const DEFAULT_RUNTIME_PROFILE: RuntimeProfile = {
+  version: 1,
+  preferredPlayerName: DEFAULT_RUNTIME_BOOT_CONFIG.playerName,
+  preferredTouchControls: DEFAULT_RUNTIME_BOOT_CONFIG.touchControls,
+  runsLaunched: 0,
+  bestScore: 0,
+  bestRound: 0,
+  lastScore: 0,
+  lastRound: 0,
+  lastCaptured: 0,
+  updatedAt: null,
 };

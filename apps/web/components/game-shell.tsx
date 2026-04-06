@@ -1,6 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import {
+  clearStoredProfile,
+  exportRuntimeProfile,
+  importRuntimeProfile,
+  loadStoredProfile,
+  profileToBootConfig,
+  saveStoredProfile,
+  sanitizeRuntimeProfile,
+} from "@/lib/profile-store";
 import {
   bootRuntimeBridge,
   dispatchUiIntent,
@@ -8,9 +17,13 @@ import {
   sanitizeRuntimeBootConfig,
   subscribeRuntimeEvents,
 } from "@/lib/web-bridge";
+import {
+  DEFAULT_RUNTIME_PROFILE,
+} from "@/lib/types";
 import type {
   RuntimeBootConfig,
   RuntimeBootRecord,
+  RuntimeProfile,
   RuntimeSnapshot,
 } from "@/lib/types";
 
@@ -32,9 +45,16 @@ export function GameShell() {
   const [runtimeSnapshot, setRuntimeSnapshot] =
     useState<RuntimeSnapshot>(getRuntimeSnapshot);
   const [controls, setControls] = useState<ControlState>(DEFAULT_CONTROL_STATE);
+  const [profile, setProfile] = useState<RuntimeProfile>(DEFAULT_RUNTIME_PROFILE);
+  const [profileDraft, setProfileDraft] = useState("");
+  const [profileMessage, setProfileMessage] = useState<string | null>(null);
+  const lastSceneReadyEventId = useRef<number | null>(null);
 
   useEffect(() => {
-    const initialConfig = readStoredBootConfig();
+    const storedProfile = loadStoredProfile();
+    setProfile(storedProfile);
+
+    const initialConfig = readStoredBootConfig(storedProfile);
     setRuntimeSnapshot(
       bootRuntimeBridge({
         initialConfig,
@@ -57,6 +77,73 @@ export function GameShell() {
       );
     } catch {}
   }, [runtimeSnapshot.bootConfig]);
+
+  useEffect(() => {
+    setProfile((current) => {
+      const next = sanitizeRuntimeProfile({
+        ...current,
+        preferredPlayerName: runtimeSnapshot.bootConfig.playerName,
+        preferredTouchControls: runtimeSnapshot.bootConfig.touchControls,
+        updatedAt: new Date().toISOString(),
+      });
+
+      saveStoredProfile(next);
+      return next;
+    });
+  }, [runtimeSnapshot.bootConfig.playerName, runtimeSnapshot.bootConfig.touchControls]);
+
+  useEffect(() => {
+    const currentBoot = runtimeSnapshot.boot.current;
+
+    if (
+      currentBoot.phase !== "scene-ready" ||
+      currentBoot.id === lastSceneReadyEventId.current
+    ) {
+      return;
+    }
+
+    lastSceneReadyEventId.current = currentBoot.id;
+
+    setProfile((current) => {
+      const next = sanitizeRuntimeProfile({
+        ...current,
+        runsLaunched: current.runsLaunched + 1,
+        updatedAt: new Date().toISOString(),
+      });
+      saveStoredProfile(next);
+      return next;
+    });
+  }, [runtimeSnapshot.boot.current]);
+
+  useEffect(() => {
+    if (!runtimeSnapshot.world.ready) {
+      return;
+    }
+
+    setProfile((current) => {
+      const next = sanitizeRuntimeProfile({
+        ...current,
+        lastScore: runtimeSnapshot.world.slice.score,
+        lastRound: runtimeSnapshot.world.slice.round,
+        lastCaptured: runtimeSnapshot.world.slice.captured,
+        bestScore: Math.max(current.bestScore, runtimeSnapshot.world.slice.score),
+        bestRound: Math.max(current.bestRound, runtimeSnapshot.world.slice.round),
+        updatedAt: new Date().toISOString(),
+      });
+
+      if (profilesEqual(current, next)) {
+        return current;
+      }
+
+      saveStoredProfile(next);
+      return next;
+    });
+  }, [
+    runtimeSnapshot.world.ready,
+    runtimeSnapshot.world.slice.score,
+    runtimeSnapshot.world.slice.round,
+    runtimeSnapshot.world.slice.captured,
+  ]);
 
   useEffect(() => {
     void dispatchUiIntent({
@@ -136,6 +223,54 @@ export function GameShell() {
   function handleLaunch() {
     void dispatchUiIntent({
       type: "runtime.boot",
+    });
+  }
+
+  async function handleCopyProfile() {
+    const raw = exportRuntimeProfile(profile);
+    setProfileDraft(raw);
+
+    try {
+      await navigator.clipboard.writeText(raw);
+      setProfileMessage("Profile JSON copied to clipboard.");
+    } catch {
+      setProfileMessage("Profile JSON prepared below. Copy manually if needed.");
+    }
+  }
+
+  function handleImportProfile() {
+    try {
+      const imported = importRuntimeProfile(profileDraft);
+      const next = sanitizeRuntimeProfile({
+        ...imported,
+        updatedAt: new Date().toISOString(),
+      });
+
+      setProfile(next);
+      saveStoredProfile(next);
+      setProfileMessage("Profile imported from JSON.");
+      void dispatchUiIntent({
+        type: "runtime.boot-config.patch",
+        patch: profileToBootConfig(next),
+      });
+    } catch {
+      setProfileMessage("Profile import failed. Check the JSON payload.");
+    }
+  }
+
+  function handleResetProfile() {
+    const next = sanitizeRuntimeProfile({
+      updatedAt: new Date().toISOString(),
+    });
+
+    setProfile(next);
+    clearStoredProfile();
+    saveStoredProfile(next);
+    setProfileDraft("");
+    setProfileMessage("Profile reset to template defaults.");
+    void dispatchUiIntent({
+      type: "runtime.boot-config.patch",
+      patch: profileToBootConfig(next),
     });
   }
 
@@ -232,6 +367,55 @@ export function GameShell() {
         </section>
 
         <section className="panel">
+          <div className="eyebrow">Profile Save</div>
+          <div className="stat-grid">
+            <div className="stat-card">
+              <span className="stat-label">Runs</span>
+              <strong>{profile.runsLaunched}</strong>
+            </div>
+            <div className="stat-card">
+              <span className="stat-label">Best Score</span>
+              <strong>{profile.bestScore}</strong>
+            </div>
+            <div className="stat-card">
+              <span className="stat-label">Best Loop</span>
+              <strong>{profile.bestRound}</strong>
+            </div>
+          </div>
+          <div className="muted">
+            Last run: {profile.lastScore} score, loop {profile.lastRound}, uplinks{" "}
+            {profile.lastCaptured}
+          </div>
+          <div className="muted">
+            {profile.updatedAt
+              ? `Updated ${new Date(profile.updatedAt).toLocaleString()}`
+              : "No persisted profile yet."}
+          </div>
+          <div className="action-row">
+            <button className="button secondary" onClick={() => void handleCopyProfile()}>
+              Copy Save JSON
+            </button>
+            <button className="button secondary" onClick={handleImportProfile}>
+              Load Save JSON
+            </button>
+            <button className="button secondary" onClick={handleResetProfile}>
+              Reset Save
+            </button>
+          </div>
+          <label className="label">
+            Profile JSON
+            <textarea
+              className="profile-textarea"
+              value={profileDraft}
+              onChange={(event) => setProfileDraft(event.target.value)}
+              placeholder="Exported profile JSON appears here. Paste a profile payload to import."
+              rows={8}
+            />
+          </label>
+          {profileMessage ? <div className="muted">{profileMessage}</div> : null}
+        </section>
+
+        <section className="panel">
           <div className="eyebrow">Boot History</div>
           <ol className="history">
             {[...runtimeSnapshot.boot.history].reverse().map((record) => (
@@ -320,17 +504,17 @@ export function GameShell() {
   );
 }
 
-function readStoredBootConfig(): Partial<RuntimeBootConfig> | undefined {
+function readStoredBootConfig(profile: RuntimeProfile): Partial<RuntimeBootConfig> | undefined {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
 
     if (!raw) {
-      return undefined;
+      return profileToBootConfig(profile);
     }
 
     return sanitizeRuntimeBootConfig(JSON.parse(raw));
   } catch {
-    return undefined;
+    return profileToBootConfig(profile);
   }
 }
 
@@ -359,4 +543,19 @@ function controlKeyFromKeyboard(key: string): ControlKey | null {
 
 function renderBootRecord(record: RuntimeBootRecord) {
   return `${record.phase} · ${record.message}`;
+}
+
+function profilesEqual(left: RuntimeProfile, right: RuntimeProfile) {
+  return (
+    left.version === right.version &&
+    left.preferredPlayerName === right.preferredPlayerName &&
+    left.preferredTouchControls === right.preferredTouchControls &&
+    left.runsLaunched === right.runsLaunched &&
+    left.bestScore === right.bestScore &&
+    left.bestRound === right.bestRound &&
+    left.lastScore === right.lastScore &&
+    left.lastRound === right.lastRound &&
+    left.lastCaptured === right.lastCaptured &&
+    left.updatedAt === right.updatedAt
+  );
 }

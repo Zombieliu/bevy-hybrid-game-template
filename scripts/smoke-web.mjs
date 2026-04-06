@@ -168,6 +168,8 @@ async function runSmoke(url) {
 
     const statusPanel = page.locator("section.panel").nth(1);
     const statusText = await statusPanel.innerText();
+    const profilePanel = page.locator("section.panel").nth(3);
+    const profileText = await profilePanel.innerText();
 
     if (!/Runtime active:\s+yes/i.test(statusText)) {
       throw new Error(`Smoke failed: runtime never became active.\n${statusText}`);
@@ -177,12 +179,26 @@ async function runSmoke(url) {
       throw new Error(`Smoke failed: runtime position never changed.\n${statusText}`);
     }
 
+    if (!/Runs\s+1/i.test(profileText) || !/Best Score/i.test(profileText)) {
+      throw new Error(`Smoke failed: profile panel did not update.\n${profileText}`);
+    }
+
+    await page.getByRole("button", { name: "Copy Save JSON" }).click();
+    const profileJson = await page.locator("textarea.profile-textarea").inputValue();
+
+    if (!/"version": 1/.test(profileJson) || !/"runsLaunched": 1/.test(profileJson)) {
+      throw new Error(`Smoke failed: profile export payload is incomplete.\n${profileJson}`);
+    }
+
     if (pageErrors.length > 0) {
       throw new Error(`Smoke failed with browser errors:\n${pageErrors.join("\n")}`);
     }
 
     await page.screenshot({ path: path.join(outputDir, "smoke-web.png"), fullPage: true });
-    await writeFile(path.join(outputDir, "smoke-web.txt"), `${statusText}\n`);
+    await writeFile(
+      path.join(outputDir, "smoke-web.txt"),
+      `${statusText}\n\nPROFILE\n${profileText}\n`,
+    );
   } finally {
     await browser.close();
   }

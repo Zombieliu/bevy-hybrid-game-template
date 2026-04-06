@@ -48,6 +48,7 @@ and packaging checklist in [`TEMPLATE_SETUP.md`](./TEMPLATE_SETUP.md).
 - `pnpm rename:template -- ...` rewrites the default template identity across core files
 - `src/runtime_app.rs` keeps native and web bootstrap logic on one contract
 - `src/starter_scene.rs` gives every new project a visible first slice with objectives, score, and shell-visible runtime state
+- the web shell now includes a local-first profile/save layer with JSON export/import
 
 ## Why This Template
 
@@ -70,6 +71,7 @@ Bevy runtime`.
 - shared Rust bootstrap for both native and web entrypoints
 - a visible starter scene that proves the runtime is live on first launch
 - a small gameplay loop with uplink capture progress, score, and repeating rounds
+- local profile persistence for preferences, last run, and best run data
 - minimal shell-to-runtime bridge:
   - boot status sink
   - runtime event sink
@@ -146,6 +148,19 @@ This builds the web export when needed, serves the generated static shell on a
 local port, launches Chromium, clicks `Launch Runtime`, waits for
 `scene-ready`, sends virtual input, and saves smoke artifacts under
 `output/playwright/smoke-web`.
+
+## Local Profile Layer
+
+The web shell now ships with a local-first profile/save contract:
+
+- preferred player name and touch-control setting
+- runs launched
+- best score and best loop
+- last run summary
+- JSON export/import for quick handoff between local environments
+
+This is intentionally shell-owned and browser-local. If you later add auth or
+cloud save, you can swap the storage backend without rewriting the Bevy runtime.
 
 ## Shared Runtime Bootstrap
 

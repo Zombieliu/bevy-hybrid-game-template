@@ -10,6 +10,7 @@ semantic-style version tags such as `v0.1.0`.
 ### Added
 
 - Starter slice progression data now flows into the web shell with objective, score, loop, and status fields.
+- Local profile/save persistence for preferences and run summaries, including JSON export/import from the shell.
 
 ## [0.1.0] - 2026-04-06
 
