@@ -65,6 +65,7 @@ See the visual map in [`docs/capability-map.svg`](./docs/capability-map.svg).
 - `pnpm dev` starts the Next.js shell and embedded Bevy WASM runtime
 - `pnpm build` exports a static web artifact from `apps/web/out`
 - `pnpm smoke:web` boots the shell, launches the runtime, and validates scene/input flow
+- `SMOKE_REMOTE_BACKEND_URL=http://127.0.0.1:8787 pnpm smoke:web` also validates the shell's remote data-mode path against the optional backend
 - `pnpm rename:template -- ...` rewrites the default template identity across core files
 - `pnpm backend:dev` starts the optional headless Bevy backend reference
 - `src/runtime_app.rs` keeps native and web bootstrap logic on one contract
@@ -216,6 +217,11 @@ This is intentionally shell-owned and browser-local. If you later add auth,
 cloud save, or backend match state, you can swap the storage backend without
 rewriting the Bevy runtime.
 
+The shell also ships a `Data Mode` switch:
+
+- `Local` keeps save slots, progression, and recent sessions in browser storage
+- `Remote` pulls profiles/sessions from the optional backend and pushes the active slot plus live match-session updates back to it
+
 ## Optional Headless Backend
 
 This repo now also ships an optional reference backend in
@@ -233,6 +239,17 @@ to:
 
 The backend is intentionally not required by the default template path. Treat it
 as a reference scaffold, not a hard dependency.
+
+To exercise the remote path from the stock shell:
+
+1. run `pnpm backend:dev`
+2. run `pnpm dev`
+3. switch the `Data Mode` panel to `Remote`
+4. keep the default backend URL or point it at your own instance
+5. use `Pull Remote` to hydrate the shell, then launch the runtime
+
+The shell will keep slot profile changes and match-session updates synced while
+remote mode stays active.
 
 ## Replaceable Boundaries
 

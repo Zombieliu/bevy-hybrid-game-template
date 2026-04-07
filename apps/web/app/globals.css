@@ -154,6 +154,26 @@ textarea {
   gap: 10px;
 }
 
+.mode-toggle {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.mode-chip {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+}
+
+.mode-chip.active {
+  background: rgba(110, 211, 183, 0.14);
+  border-color: rgba(110, 211, 183, 0.48);
+  color: var(--accent-strong);
+}
+
 .slot-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

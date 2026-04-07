@@ -122,6 +122,40 @@ export type RuntimeSaveCollection = {
   slots: RuntimeSaveSlot[];
 };
 
+export type ShellDataMode = "local" | "remote";
+
+export type RemoteBackendProfile = {
+  slot_id: string;
+  player_name: string;
+  touch_controls: boolean;
+  best_score: number;
+  best_round: number;
+  updated_at: string;
+};
+
+export type RemoteBackendSession = {
+  id: string;
+  slot_id: string;
+  player_name: string;
+  status: MatchSessionStatus;
+  round: number;
+  objective: string;
+  score: number;
+  captured: number;
+  total: number;
+  started_at: string;
+  updated_at: string;
+  ended_at: string | null;
+};
+
+export type RemoteBackendSnapshot = {
+  mode: string;
+  tick: number;
+  uptime_ms: number;
+  profiles: Record<string, RemoteBackendProfile>;
+  sessions: RemoteBackendSession[];
+};
+
 export type UiIntent =
   | {
       type: "runtime.boot";

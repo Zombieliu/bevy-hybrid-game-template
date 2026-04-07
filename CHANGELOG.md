@@ -13,6 +13,7 @@ semantic-style version tags such as `v0.1.0`.
 - Local save slots with progression meta, recent session history, and JSON export/import for the shell-owned save matrix.
 - Product-facing packaging docs and visual capability map for public template distribution.
 - Optional headless Bevy backend reference with health, profile, session, and snapshot endpoints.
+- Shell-level `local / remote` data mode with backend URL controls, remote snapshot hydration, and live profile/session sync against the optional headless backend.
 
 ## [0.1.0] - 2026-04-06
 

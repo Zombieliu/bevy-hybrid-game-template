@@ -15,6 +15,7 @@ const staticDir = path.join(repoRoot, "apps", "web", "out");
 const configuredSmokeUrl = process.env.SMOKE_WEB_URL ?? null;
 const configuredPort = configuredSmokeUrl ? Number(new URL(configuredSmokeUrl).port || "80") : 3100;
 const configuredHostname = configuredSmokeUrl ? new URL(configuredSmokeUrl).hostname : "127.0.0.1";
+const remoteBackendUrl = process.env.SMOKE_REMOTE_BACKEND_URL ?? null;
 
 async function main() {
   await mkdir(outputDir, { recursive: true });
@@ -156,6 +157,16 @@ async function runSmoke(url) {
       );
       return button instanceof HTMLButtonElement && !button.disabled;
     });
+
+    if (remoteBackendUrl) {
+      await page.getByRole("button", { name: "Remote", exact: true }).click();
+      await page.locator('input[placeholder="http://127.0.0.1:8787"]').fill(remoteBackendUrl);
+      await page.getByRole("button", { name: "Pull Remote", exact: true }).click();
+      await page.locator("section.panel").filter({ hasText: /Pulled/i }).first().waitFor({
+        timeout: 10_000,
+      });
+    }
+
     await launchButton.click();
 
     await page.locator("text=/scene-ready/i").first().waitFor({ timeout: 30_000 });
@@ -178,6 +189,11 @@ async function runSmoke(url) {
       .filter({ hasText: "Match Contract" })
       .first();
     const sessionText = await sessionPanel.innerText();
+    const dataModePanel = page
+      .locator("section.panel")
+      .filter({ hasText: "Data Mode" })
+      .first();
+    const dataModeText = await dataModePanel.innerText();
 
     if (!/Runtime active:\s+yes/i.test(statusText)) {
       throw new Error(`Smoke failed: runtime never became active.\n${statusText}`);
@@ -193,6 +209,10 @@ async function runSmoke(url) {
 
     if (!/Status/i.test(sessionText) || !/slot-1-run-1-round-1/i.test(sessionText)) {
       throw new Error(`Smoke failed: session contract did not materialize.\n${sessionText}`);
+    }
+
+    if (remoteBackendUrl && !/Remote/i.test(dataModeText)) {
+      throw new Error(`Smoke failed: remote mode did not stay active.\n${dataModeText}`);
     }
 
     await page.getByRole("button", { name: "Copy Save Matrix" }).click();
@@ -213,7 +233,7 @@ async function runSmoke(url) {
     await page.screenshot({ path: path.join(outputDir, "smoke-web.png"), fullPage: true });
     await writeFile(
       path.join(outputDir, "smoke-web.txt"),
-      `${statusText}\n\nSESSION\n${sessionText}\n\nPROGRESSION\n${progressionText}\n`,
+      `${statusText}\n\nSESSION\n${sessionText}\n\nPROGRESSION\n${progressionText}\n\nDATA MODE\n${dataModeText}\n`,
     );
   } finally {
     await browser.close();

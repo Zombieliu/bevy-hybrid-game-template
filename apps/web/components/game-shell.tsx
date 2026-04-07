@@ -2,6 +2,16 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
+  applyBackendSnapshot,
+  createBackendSession,
+  DEFAULT_REMOTE_BACKEND_URL,
+  fetchBackendHealth,
+  fetchBackendSnapshot,
+  normalizeBackendUrl,
+  pushBackendProfile,
+  updateBackendSession,
+} from "@/lib/headless-backend-client";
+import {
   clearStoredSaveCollection,
   defaultSaveCollection,
   defaultSaveSlot,
@@ -26,6 +36,7 @@ import {
 import type {
   MatchSessionRecord,
   ProgressionBadge,
+  ShellDataMode,
   RuntimeBootConfig,
   RuntimeBootRecord,
   RuntimeProgression,
@@ -36,6 +47,8 @@ import type {
 } from "@/lib/types";
 
 const LAUNCHER_STORAGE_KEY = "bevy-hybrid-game-template.launcher.v1";
+const DATA_MODE_STORAGE_KEY = "bevy-hybrid-game-template.data-mode.v1";
+const BACKEND_URL_STORAGE_KEY = "bevy-hybrid-game-template.backend-url.v1";
 
 type ControlKey = "up" | "down" | "left" | "right";
 
@@ -57,17 +70,25 @@ export function GameShell() {
     useState<RuntimeSaveCollection>(defaultSaveCollection);
   const [saveDraft, setSaveDraft] = useState("");
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [dataMode, setDataMode] = useState<ShellDataMode>("local");
+  const [backendUrl, setBackendUrl] = useState(DEFAULT_REMOTE_BACKEND_URL);
+  const [backendMessage, setBackendMessage] = useState<string | null>(null);
   const [currentSession, setCurrentSession] = useState<MatchSessionRecord | null>(
     null,
   );
   const lastSceneReadyEventId = useRef<number | null>(null);
   const lastArchivedSessionId = useRef<string | null>(null);
+  const remoteKnownSessionIds = useRef<Set<string>>(new Set());
+  const remoteProfileSignature = useRef<string | null>(null);
+  const remoteHydrated = useRef(false);
 
   const activeSlot = getActiveSlot(saveCollection);
 
   useEffect(() => {
     const storedCollection = loadStoredSaveCollection();
     setSaveCollection(storedCollection);
+    setDataMode(readStoredDataMode());
+    setBackendUrl(readStoredBackendUrl());
 
     const initialConfig = readStoredBootConfig(storedCollection);
     setRuntimeSnapshot(
@@ -83,6 +104,27 @@ export function GameShell() {
 
     return unsubscribe;
   }, []);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(DATA_MODE_STORAGE_KEY, dataMode);
+    } catch {}
+  }, [dataMode]);
+
+  useEffect(() => {
+    if (dataMode === "local") {
+      remoteHydrated.current = false;
+    }
+  }, [dataMode]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        BACKEND_URL_STORAGE_KEY,
+        normalizeBackendUrl(backendUrl),
+      );
+    } catch {}
+  }, [backendUrl]);
 
   useEffect(() => {
     try {
@@ -294,6 +336,69 @@ export function GameShell() {
   }, [currentSession]);
 
   useEffect(() => {
+    if (!clientReady || dataMode !== "remote" || remoteHydrated.current) {
+      return;
+    }
+
+    remoteHydrated.current = true;
+    void handlePullRemote();
+  }, [clientReady, dataMode]);
+
+  useEffect(() => {
+    if (!clientReady || dataMode !== "remote") {
+      return;
+    }
+
+    const signature = [
+      activeSlot.id,
+      activeSlot.profile.preferredPlayerName,
+      activeSlot.profile.preferredTouchControls ? "1" : "0",
+      activeSlot.profile.bestScore,
+      activeSlot.profile.bestRound,
+    ].join(":");
+
+    if (remoteProfileSignature.current === signature) {
+      return;
+    }
+
+    remoteProfileSignature.current = signature;
+
+    void pushBackendProfile(normalizeBackendUrl(backendUrl), activeSlot)
+      .then(() => {
+        setBackendMessage(`Remote profile synced for ${activeSlot.label}.`);
+      })
+      .catch((error: unknown) => {
+        setBackendMessage(formatErrorMessage(error, "Remote profile sync failed."));
+      });
+  }, [
+    activeSlot.id,
+    activeSlot.label,
+    activeSlot.profile.bestRound,
+    activeSlot.profile.bestScore,
+    activeSlot.profile.preferredPlayerName,
+    activeSlot.profile.preferredTouchControls,
+    backendUrl,
+    clientReady,
+    dataMode,
+  ]);
+
+  useEffect(() => {
+    if (!clientReady || dataMode !== "remote" || !currentSession) {
+      return;
+    }
+
+    void syncCurrentSessionToRemote(currentSession, backendUrl)
+      .then((created) => {
+        if (created) {
+          setBackendMessage(`Remote session synced: ${currentSession.id}.`);
+        }
+      })
+      .catch((error: unknown) => {
+        setBackendMessage(formatErrorMessage(error, "Remote session sync failed."));
+      });
+  }, [backendUrl, clientReady, currentSession, dataMode]);
+
+  useEffect(() => {
     void dispatchUiIntent({
       type: "runtime.virtual-input.set",
       input: {
@@ -396,6 +501,43 @@ export function GameShell() {
     });
   }
 
+  async function handlePullRemote() {
+    try {
+      const snapshot = await fetchBackendSnapshot(normalizeBackendUrl(backendUrl));
+      remoteKnownSessionIds.current = new Set(snapshot.sessions.map((session) => session.id));
+      remoteProfileSignature.current = null;
+      let nextCollection = saveCollection;
+      setSaveCollection((current) => {
+        nextCollection = applyBackendSnapshot(current, snapshot);
+        return nextCollection;
+      });
+      void dispatchUiIntent({
+        type: "runtime.boot-config.patch",
+        patch: profileToBootConfig(getActiveSlot(nextCollection)),
+      });
+      setBackendMessage(
+        `Pulled ${snapshot.sessions.length} session(s) and ${Object.keys(snapshot.profiles).length} profile(s) from remote.`,
+      );
+    } catch (error: unknown) {
+      setBackendMessage(formatErrorMessage(error, "Remote pull failed."));
+    }
+  }
+
+  async function handlePushRemote() {
+    try {
+      await pushBackendProfile(normalizeBackendUrl(backendUrl), activeSlot);
+      if (currentSession) {
+        await syncCurrentSessionToRemote(currentSession, backendUrl);
+      }
+      const health = await fetchBackendHealth(normalizeBackendUrl(backendUrl));
+      setBackendMessage(
+        `Remote push complete. tick=${health.tick}, profiles=${health.profiles}, sessions=${health.sessions}.`,
+      );
+    } catch (error: unknown) {
+      setBackendMessage(formatErrorMessage(error, "Remote push failed."));
+    }
+  }
+
   function handleSelectSlot(slotId: SaveSlotId) {
     const nextSlot =
       saveCollection.slots.find((slot) => slot.id === slotId) ?? defaultSaveSlot(slotId);
@@ -479,6 +621,23 @@ export function GameShell() {
     }
   }
 
+  async function syncCurrentSessionToRemote(
+    session: MatchSessionRecord,
+    nextBackendUrl: string,
+  ) {
+    const baseUrl = normalizeBackendUrl(nextBackendUrl);
+
+    let created = false;
+    if (!remoteKnownSessionIds.current.has(session.id)) {
+      await createBackendSession(baseUrl, session);
+      remoteKnownSessionIds.current.add(session.id);
+      created = true;
+    }
+
+    await updateBackendSession(baseUrl, session);
+    return created;
+  }
+
   return (
     <main className="shell">
       <aside className="sidebar">
@@ -490,6 +649,49 @@ export function GameShell() {
             the same Rust crate.
           </p>
         </div>
+
+        <section className="panel">
+          <div className="eyebrow">Data Mode</div>
+          <div className="mode-toggle">
+            <button
+              type="button"
+              className={`mode-chip${dataMode === "local" ? " active" : ""}`}
+              onClick={() => setDataMode("local")}
+            >
+              Local
+            </button>
+            <button
+              type="button"
+              className={`mode-chip${dataMode === "remote" ? " active" : ""}`}
+              onClick={() => setDataMode("remote")}
+            >
+              Remote
+            </button>
+          </div>
+          <label className="label">
+            Backend URL
+            <input
+              type="text"
+              value={backendUrl}
+              onChange={(event) => setBackendUrl(event.target.value)}
+              placeholder={DEFAULT_REMOTE_BACKEND_URL}
+            />
+          </label>
+          <div className="action-row">
+            <button className="button secondary" onClick={() => void handlePullRemote()}>
+              Pull Remote
+            </button>
+            <button className="button secondary" onClick={() => void handlePushRemote()}>
+              Push Active Slot
+            </button>
+          </div>
+          <div className="muted">
+            {dataMode === "local"
+              ? "Shell data stays browser-local."
+              : "Shell profile/session state syncs with the optional headless backend."}
+          </div>
+          {backendMessage ? <div className="muted">{backendMessage}</div> : null}
+        </section>
 
         <section className="panel">
           <div className="eyebrow">Launcher</div>
@@ -822,6 +1024,23 @@ function renderBootRecord(record: RuntimeBootRecord) {
   return `${record.phase} · ${record.message}`;
 }
 
+function readStoredDataMode(): ShellDataMode {
+  try {
+    const raw = window.localStorage.getItem(DATA_MODE_STORAGE_KEY);
+    return raw === "remote" ? "remote" : "local";
+  } catch {
+    return "local";
+  }
+}
+
+function readStoredBackendUrl() {
+  try {
+    return normalizeBackendUrl(window.localStorage.getItem(BACKEND_URL_STORAGE_KEY));
+  } catch {
+    return DEFAULT_REMOTE_BACKEND_URL;
+  }
+}
+
 function buildSessionId(slotId: SaveSlotId, runsLaunched: number, round: number) {
   const runNumber = Math.max(1, runsLaunched);
   return `${slotId}-run-${runNumber}-round-${round}`;
@@ -931,4 +1150,12 @@ function formatBadgeLabel(badge: ProgressionBadge) {
     case "loop-3":
       return "Loop 3";
   }
+}
+
+function formatErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error && error.message) {
+    return `${fallback} ${error.message}`;
+  }
+
+  return fallback;
 }

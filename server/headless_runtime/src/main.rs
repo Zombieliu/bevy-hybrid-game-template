@@ -9,6 +9,7 @@ use std::collections::BTreeMap;
 use std::net::SocketAddr;
 use std::sync::{Arc, Mutex, RwLock};
 use std::time::{Duration, Instant};
+use tower_http::cors::{Any, CorsLayer};
 use tracing::info;
 
 const DEFAULT_SLOT_IDS: [&str; 3] = ["slot-1", "slot-2", "slot-3"];
@@ -36,6 +37,7 @@ async fn main() {
         .route("/profiles/{slot_id}", get(get_profile).put(put_profile))
         .route("/sessions", get(list_sessions).post(create_session))
         .route("/sessions/{session_id}", patch(update_session))
+        .layer(CorsLayer::new().allow_origin(Any).allow_headers(Any).allow_methods(Any))
         .with_state(shared.clone());
 
     let port = std::env::var("HEADLESS_BACKEND_PORT")
@@ -141,11 +143,13 @@ async fn create_session(
     State(shared): State<SharedRuntime>,
     Json(payload): Json<CreateSessionRequest>,
 ) -> Json<CreateSessionResponse> {
-    let session_id = format!(
-        "{}-{}",
-        sanitize_slot_id(&payload.slot_id),
-        shared.next_session_nonce()
-    );
+    let session_id = payload.session_id.unwrap_or_else(|| {
+        format!(
+            "{}-{}",
+            sanitize_slot_id(&payload.slot_id),
+            shared.next_session_nonce()
+        )
+    });
 
     shared.push_command(BackendCommand::CreateSession {
         session_id: session_id.clone(),
@@ -448,6 +452,7 @@ enum BackendCommand {
 
 #[derive(Deserialize)]
 struct CreateSessionRequest {
+    session_id: Option<String>,
     slot_id: String,
     player_name: String,
 }

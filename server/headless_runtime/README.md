@@ -54,3 +54,16 @@ to:
 - a headless authority path for multiplayer or remote persistence
 
 It is a reference path, not a mandatory dependency.
+
+## Shell Integration
+
+The stock `apps/web` shell can talk to this backend directly.
+
+1. start the backend with `pnpm backend:dev`
+2. start the shell with `pnpm dev`
+3. switch the shell's `Data Mode` panel to `Remote`
+4. use `Pull Remote` to hydrate local slot/session state from `/snapshot`
+5. launch the runtime to push the active profile plus live session updates back through `/profiles/:slot_id` and `/sessions`
+
+The backend keeps everything in memory by default, so treat it as a template
+reference and replace persistence/auth when you build a real game service.
